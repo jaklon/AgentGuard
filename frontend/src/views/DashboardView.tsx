@@ -30,14 +30,14 @@ export function evaluate(text: string): Result {
     return {
       status: "BLOCK",
       score: 95,
-      reason: "AI tidak diizinkan menghentikan seluruh sistem pembayaran.",
+      reason: "AI is not allowed to pause the payment system.",
       amount,
     };
   if (amount > 0.04)
     return {
       status: "BLOCK",
       score: 91,
-      reason: `${amount} BOT jauh melebihi batas 0.02 BOT untuk sekali bayar.`,
+      reason: `${amount} BOT significantly exceeds the 0.02 BOT per-transaction limit.`,
       amount,
     };
   if (amount > 0.02)
@@ -45,13 +45,13 @@ export function evaluate(text: string): Result {
       status: "WARN",
       score: 62,
       reason:
-        "Nominal ini melewati batas sekali bayar dan perlu kamu periksa ulang.",
+        "This amount exceeds the per-transaction limit and requires review.",
       amount,
     };
   return {
     status: "ALLOW",
     score: 12,
-    reason: "Permintaan ini mengikuti semua aturan keamanan yang aktif.",
+    reason: "This instruction matches every active safety rule.",
     amount,
   };
 }
@@ -59,14 +59,14 @@ export function evaluate(text: string): Result {
 const address = "0x3A9F4e1248C7D10b4fa87A45D3112B9A9D1c76Ae";
 const examples = [
   {
-    label: "Pembayaran aman",
-    text: "Kirim 0.01 BOT ke 0x3A9… untuk tagihan server",
+    label: "Safe payment",
+    text: "Send 0.01 BOT to 0x3A9… for the server invoice",
   },
   {
-    label: "Perlu diperiksa",
-    text: "Bayar 0.03 BOT ke 0x3A9… untuk pekerjaan desain",
+    label: "Needs review",
+    text: "Pay 0.03 BOT to 0x3A9… for design work",
   },
-  { label: "Tindakan terlarang", text: "Hentikan semua pembayaran kontrak" },
+  { label: "Blocked action", text: "Pause all contract payments" },
 ];
 
 export default function DashboardView() {
@@ -97,24 +97,24 @@ export default function DashboardView() {
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
           <div className="max-w-4xl">
             <div className="guard-kicker mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em]">
-              <span className="h-px w-6 bg-indigo-400" /> Pemeriksaan pembayaran
-              AI
+              <span className="h-px w-6 bg-indigo-400" /> AI payment safety
+              check
             </div>
             <h1 className="guard-title font-semibold leading-[.93] tracking-[-.055em]">
-              Periksa sebelum uang bergerak.
+              Check before funds move.
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-slate-400 md:text-lg">
-              Cukup tulis permintaannya. AgentGuard langsung memberi tahu apakah
-              pembayaran aman, perlu diperiksa, atau harus diblokir.
+              Write the request in plain language. AgentGuard immediately tells
+              you whether the payment is safe, needs review, or must be blocked.
             </p>
           </div>
           <div className="guard-demo-note py-4 pl-5 text-xs lg:max-w-[300px]">
             <div className="flex items-center gap-2 font-semibold text-emerald-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Mode demo
-              aman
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Safe demo
+              mode
             </div>
             <p className="mt-2 leading-5">
-              Tidak ada wallet asli dan tidak ada uang sungguhan yang dikirim.
+              No real wallet is connected and no real funds are sent.
             </p>
           </div>
         </div>
@@ -122,21 +122,18 @@ export default function DashboardView() {
 
       <details className="guard-glossary group mb-8 rounded-2xl p-5">
         <summary className="cursor-pointer list-none text-sm font-semibold text-slate-300">
-          <span className="mr-2 text-indigo-400">?</span>Belum familiar dengan
-          istilahnya? Klik untuk penjelasan singkat
+          <span className="mr-2 text-indigo-400">?</span>New to these terms?
+          Open a quick explanation
         </summary>
         <div className="mt-4 grid gap-3 border-t border-white/[.06] pt-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             [
               "AI agent",
-              "Asisten digital yang dapat menyiapkan tugas secara otomatis.",
+              "A digital assistant that can prepare tasks automatically.",
             ],
-            ["Wallet", "Dompet digital tempat aset blockchain disimpan."],
-            ["BOT", "Mata uang yang dipakai di jaringan BOT Chain."],
-            [
-              "Aturan keamanan",
-              "Batas yang menentukan pembayaran mana yang aman.",
-            ],
+            ["Wallet", "A digital account used to hold blockchain assets."],
+            ["BOT", "The currency used on the BOT Chain network."],
+            ["Safety policy", "Rules that determine which payments are safe."],
           ].map(([term, meaning]) => (
             <div key={term}>
               <p className="text-xs font-semibold text-indigo-300">{term}</p>
@@ -149,18 +146,18 @@ export default function DashboardView() {
       <div className="guard-workspace grid gap-7 lg:grid-cols-[300px_1fr]">
         <Card className="guard-policy-card order-2 h-fit p-6 lg:order-1 lg:sticky lg:top-28">
           <CardHeader
-            eyebrow="Aturan keamananmu"
-            title="Batas wallet demo"
-            action={<Pill status="ACTIVE" label="AKTIF" />}
+            eyebrow="Your safety policy"
+            title="Demo wallet limits"
+            action={<Pill status="ACTIVE" label="ACTIVE" />}
           />
           <p className="mt-2 text-xs leading-5 text-slate-500">
-            Semua permintaan harus lolos aturan ini sebelum dapat kamu setujui.
+            Every request must pass these rules before you can approve it.
           </p>
           <Divider />
           <div className="space-y-1">
-            <Row label="Maksimal sekali bayar" value={<Mono>0.02 BOT</Mono>} />
-            <Row label="Maksimal per hari" value={<Mono>0.10 BOT</Mono>} />
-            <Row label="Sudah dipakai hari ini" value={<Mono>0.03 BOT</Mono>} />
+            <Row label="Per-transaction limit" value={<Mono>0.02 BOT</Mono>} />
+            <Row label="Daily limit" value={<Mono>0.10 BOT</Mono>} />
+            <Row label="Used today" value={<Mono>0.03 BOT</Mono>} />
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
             <motion.div
@@ -171,12 +168,12 @@ export default function DashboardView() {
             />
           </div>
           <p className="mt-2 text-[10px] text-slate-600">
-            30% dari batas harian sudah terpakai
+            30% of the daily limit has been used
           </p>
           <Divider />
           <div className="flex justify-between text-xs">
-            <span className="text-slate-500">Penerima terpercaya</span>
-            <span className="text-emerald-400">3 diizinkan</span>
+            <span className="text-slate-500">Trusted recipients</span>
+            <span className="text-emerald-400">3 allowed</span>
           </div>
           <div className="mt-3 space-y-2">
             {["0x3A9…c76A", "0x92B…10e4", "0xF71…8b20"].map((item) => (
@@ -188,7 +185,7 @@ export default function DashboardView() {
               </div>
             ))}
           </div>
-          <Row label="Aturan berakhir" value="30 Sep 2026" />
+          <Row label="Policy expires" value="30 Sep 2026" />
         </Card>
 
         <div className="order-1 lg:order-2">
@@ -196,13 +193,13 @@ export default function DashboardView() {
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
-                  Langkah 1 dari 2
+                  Step 1 of 2
                 </p>
                 <h2 className="mt-1 font-semibold">
-                  Apa yang ingin dibayar oleh AI?
+                  What does the AI want to pay?
                 </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Tulis seperti kamu berbicara biasa. Tidak perlu format khusus.
+                  Write naturally. No special format is required.
                 </p>
               </div>
               <span className="shrink-0 text-[10px] text-slate-600">
@@ -217,11 +214,11 @@ export default function DashboardView() {
                   run();
               }}
               className="input guard-command-input min-h-40 resize-none text-base leading-7 md:text-lg"
-              placeholder="Contoh: Kirim 0.01 BOT ke 0x3A9… untuk tagihan server"
+              placeholder="Example: Send 0.01 BOT to 0x3A9… for the server invoice"
             />
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
-                Coba contoh
+                Try an example
               </span>
               {examples.map((example) => (
                 <motion.button
@@ -243,13 +240,13 @@ export default function DashboardView() {
               {loading ? (
                 <>
                   <Spinner />
-                  Sedang memeriksa permintaan…
+                  Checking the request…
                 </>
               ) : (
                 <>
                   <Icon name="shield" />
-                  Periksa sekarang{" "}
-                  <span className="text-white/50">· sekitar 2 detik</span>
+                  Check now{" "}
+                  <span className="text-white/50">· about 2 seconds</span>
                 </>
               )}
             </MBtn>
@@ -297,24 +294,24 @@ function ResultCard({ result }: { result: Result }) {
         <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
           <div>
             <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-indigo-400">
-              Langkah 2 dari 2 · Hasil pemeriksaan
+              Step 2 of 2 · Guard decision
             </p>
             <Pill
               status={result.status}
               label={
                 result.status === "ALLOW"
-                  ? "AMAN"
+                  ? "ALLOW"
                   : result.status === "WARN"
-                    ? "PERIKSA"
-                    : "DIBLOKIR"
+                    ? "REVIEW"
+                    : "BLOCKED"
               }
             />
             <h3 className="mt-3 text-xl font-semibold">
               {result.status === "ALLOW"
-                ? "Aman untuk dilanjutkan"
+                ? "Safe to proceed"
                 : result.status === "WARN"
-                  ? "Periksa ulang sebelum lanjut"
-                  : "Pembayaran dihentikan"}
+                  ? "Review before proceeding"
+                  : "Payment blocked"}
             </h3>
             <p className="mt-1 max-w-xl text-sm leading-6 text-slate-400">
               {result.reason}
@@ -324,13 +321,13 @@ function ResultCard({ result }: { result: Result }) {
         </div>
         <details className="my-5 rounded-xl border border-white/[.07] bg-white/[.02] px-4">
           <summary className="cursor-pointer py-3 text-xs font-semibold text-slate-400 hover:text-white">
-            Lihat detail yang diperiksa
+            View checked details
           </summary>
           <div className="border-t border-white/[.06] pb-4">
             <div className="grid gap-x-8 md:grid-cols-2">
-              <Row label="AI ingin melakukan" value={<Mono>TRANSFER</Mono>} />
+              <Row label="Requested action" value={<Mono>TRANSFER</Mono>} />
               <Row
-                label="Penerima pembayaran"
+                label="Payment recipient"
                 value={
                   <Mono>
                     {address.slice(0, 8)}…{address.slice(-5)}
@@ -338,11 +335,11 @@ function ResultCard({ result }: { result: Result }) {
                 }
               />
               <Row
-                label="Nominal pembayaran"
+                label="Payment amount"
                 value={<Mono>{result.amount.toFixed(3)} BOT</Mono>}
               />
-              <Row label="Jaringan yang dipakai" value="BOT Testnet (968)" />
-              <Row label="Tujuan pembayaran" value="Tagihan server" />
+              <Row label="Network" value="BOT Testnet (968)" />
+              <Row label="Payment purpose" value="Server invoice" />
             </div>
             <motion.div
               variants={stagger}
@@ -351,10 +348,10 @@ function ResultCard({ result }: { result: Result }) {
               className="mt-4 flex flex-wrap gap-2"
             >
               {[
-                "Nominal sudah dicek",
-                "Penerima sudah dicek",
-                "Kontrak aktif",
-                "Batas harian tersedia",
+                "Amount checked",
+                "Recipient checked",
+                "Contract active",
+                "Daily allowance available",
               ].map((item, index) => (
                 <motion.span
                   variants={{
@@ -378,8 +375,8 @@ function ResultCard({ result }: { result: Result }) {
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-300"
             >
-              <Icon name="check" /> Pembayaran demo disetujui — tidak ada uang
-              asli yang dikirim
+              <Icon name="check" /> Demo payment approved — no real funds were
+              sent
             </motion.div>
           ) : result.status === "ALLOW" ? (
             <MBtn
@@ -392,12 +389,12 @@ function ResultCard({ result }: { result: Result }) {
               {signing ? (
                 <>
                   <Spinner />
-                  Mensimulasikan persetujuan wallet…
+                  Simulating wallet approval…
                 </>
               ) : (
                 <>
                   <Icon name="wallet" />
-                  Setujui pembayaran demo
+                  Approve demo payment
                 </>
               )}
             </MBtn>
@@ -412,15 +409,15 @@ function ResultCard({ result }: { result: Result }) {
               {signing ? (
                 <>
                   <Spinner />
-                  Mencatat keputusanmu…
+                  Recording your decision…
                 </>
               ) : (
-                "Saya memahami risikonya — lanjutkan demo"
+                "I understand the risk — continue demo"
               )}
             </MBtn>
           ) : (
             <MBtn key="block" variant="danger" disabled className="w-full py-3">
-              Pembayaran diblokir oleh aturan keamananmu
+              Payment blocked by your safety policy
             </MBtn>
           )}
         </AnimatePresence>

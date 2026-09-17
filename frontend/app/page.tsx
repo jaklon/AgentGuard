@@ -90,7 +90,7 @@ export default function IntroductionPage() {
         <div className="intro-nav-right">
           <span className="intro-network">BOT Chain · 968</span>
           <Link href="/login" className="intro-login-link">
-            Masuk
+            Enter
           </Link>
         </div>
       </nav>
@@ -101,30 +101,30 @@ export default function IntroductionPage() {
         </div>
         <h1
           className="intro-title"
-          aria-label="AI boleh bergerak cepat. Uangmu tidak boleh ikut ceroboh."
+          aria-label="AI can move fast. Your money should not move carelessly."
         >
           <span className="intro-title-mask">
-            <span data-intro-line>AI boleh bergerak cepat.</span>
+            <span data-intro-line>AI can move fast.</span>
           </span>
           <span className="intro-title-mask">
-            <span data-intro-line>Uangmu tidak boleh</span>
+            <span data-intro-line>Your money should not</span>
           </span>
           <span className="intro-title-mask intro-title-accent">
-            <span data-intro-line>ikut ceroboh.</span>
+            <span data-intro-line>move carelessly.</span>
           </span>
         </h1>
         <div className="intro-hero-bottom">
           <p data-intro-copy>
-            AgentGuard berdiri di antara perintah AI dan pembayaran blockchain.
-            Ia memeriksa niat, aturan, serta risiko—lalu mengembalikan keputusan
-            terakhir kepadamu.
+            AgentGuard stands between an AI instruction and a blockchain
+            payment. It checks intent, policy, and risk—then returns the final
+            decision to you.
           </p>
           <div data-intro-copy className="intro-actions">
             <Link href="/login" className="intro-cta">
-              Coba pengalaman demo <span>↗</span>
+              Try the live demo <span>↗</span>
             </Link>
             <a href="#how" className="intro-text-link">
-              Lihat cara kerjanya ↓
+              See how it works ↓
             </a>
           </div>
         </div>
@@ -153,11 +153,11 @@ export default function IntroductionPage() {
       <section className="intro-statement" data-reveal>
         <p className="intro-section-label">01 · THE PROBLEM</p>
         <p className="intro-statement-text">
-          AI mampu bertindak dalam milidetik. <em>Kepercayaan tidak.</em>
+          AI can act in milliseconds. <em>Trust cannot.</em>
         </p>
         <div className="intro-statement-aside">
-          Satu alamat salah, satu nominal berlebih, atau satu instruksi
-          berbahaya cukup untuk mengubah automasi menjadi kerugian.
+          One wrong address, one excessive amount, or one dangerous instruction
+          can turn automation into a loss.
         </div>
       </section>
 
@@ -165,9 +165,9 @@ export default function IntroductionPage() {
         <header data-reveal>
           <p className="intro-section-label">02 · THE CHECKPOINT</p>
           <h2>
-            Satu lapisan tenang
+            A calm layer
             <br />
-            di antara niat dan uang.
+            between intent and money.
           </h2>
         </header>
         <div className="intro-system-stage">
@@ -175,8 +175,8 @@ export default function IntroductionPage() {
             data-orbit-card="request"
             className="intro-system-card intro-request-card"
           >
-            <span>PERINTAH AI</span>
-            <p>“Kirim 0.01 BOT untuk tagihan server.”</p>
+            <span>AI INSTRUCTION</span>
+            <p>“Send 0.01 BOT for the server invoice.”</p>
             <small>Natural language input</small>
           </article>
           <div className="intro-system-core">
@@ -188,9 +188,9 @@ export default function IntroductionPage() {
             data-orbit-card="decision"
             className="intro-system-card intro-decision-card"
           >
-            <span>KEPUTUSAN</span>
+            <span>DECISION</span>
             <p>
-              <i /> AMAN UNTUK DILANJUTKAN
+              <i /> SAFE TO PROCEED
             </p>
             <small>Risk score · 12/100</small>
           </article>
@@ -199,18 +199,18 @@ export default function IntroductionPage() {
           {[
             [
               "01",
-              "Baca niat",
-              "Nominal, penerima, jaringan, dan tujuan dibentuk menjadi data yang jelas.",
+              "Read the intent",
+              "Amount, recipient, network, and purpose become clear structured data.",
             ],
             [
               "02",
-              "Uji aturan",
-              "Batas transaksi, penggunaan harian, dan penerima terpercaya diperiksa.",
+              "Test the policy",
+              "Transaction limits, daily usage, and trusted recipients are checked.",
             ],
             [
               "03",
-              "Kembalikan kendali",
-              "AMAN, PERIKSA, atau DIBLOKIR—manusia tetap menentukan langkah akhir.",
+              "Return control",
+              "ALLOW, REVIEW, or BLOCK—the human still makes the final call.",
             ],
           ].map(([number, title, copy]) => (
             <article key={number} data-reveal>
@@ -226,32 +226,31 @@ export default function IntroductionPage() {
         <div data-reveal className="intro-proof-heading">
           <p className="intro-section-label">03 · DESIGNED FOR TRUST</p>
           <h2>
-            Tidak ada autopilot
+            No autopilot
             <br />
-            untuk uangmu.
+            for your money.
           </h2>
         </div>
         <div className="intro-proof-grid">
           <article data-reveal>
             <b>LOCAL</b>
-            <h3>Evaluasi deterministik</h3>
+            <h3>Deterministic evaluation</h3>
             <p>
-              Demo memproses aturan langsung di browser. Tidak ada instruksi
-              yang dikirim ke server.
+              The demo evaluates policy directly in the browser. No instruction
+              is sent to a server.
             </p>
           </article>
           <article data-reveal>
             <b>VISIBLE</b>
-            <h3>Alasan, bukan skor kosong</h3>
+            <h3>Reasons, not just a score</h3>
             <p>
-              Setiap keputusan menyertakan alasan dan pemeriksaan yang dapat
-              kamu pahami.
+              Every decision includes reasons and checks you can understand.
             </p>
           </article>
           <article data-reveal>
             <b>HUMAN</b>
-            <h3>Persetujuan tetap milikmu</h3>
-            <p>AI mengusulkan. AgentGuard memeriksa. Kamu yang menentukan.</p>
+            <h3>Approval stays yours</h3>
+            <p>AI proposes. AgentGuard checks. You decide.</p>
           </article>
         </div>
       </section>
@@ -260,12 +259,12 @@ export default function IntroductionPage() {
         <GuardMark large />
         <p>Built for BOT Chain · Designed around human control</p>
         <h2>
-          Biarkan AI bekerja.
+          Let AI do the work.
           <br />
-          <em>Jangan biarkan ia ceroboh.</em>
+          <em>Do not let it be careless.</em>
         </h2>
         <Link href="/login" className="intro-cta intro-cta-light">
-          Masuk ke AgentGuard <span>→</span>
+          Enter AgentGuard <span>→</span>
         </Link>
       </section>
       <footer className="intro-footer">

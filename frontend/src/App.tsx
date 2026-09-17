@@ -38,9 +38,9 @@ type Tab =
   | "Architecture"
   | "UI Kit";
 const navGroups: { label: string; items: Tab[] }[] = [
-  { label: "Pembayaran", items: ["Guard", "Manual", "Receipt"] },
-  { label: "Keamanan", items: ["Policy", "Risk", "Lifecycle", "Errors"] },
-  { label: "Tentang proyek", items: ["Architecture", "Board", "UI Kit"] },
+  { label: "Payments", items: ["Guard", "Manual", "Receipt"] },
+  { label: "Security", items: ["Policy", "Risk", "Lifecycle", "Errors"] },
+  { label: "About the project", items: ["Architecture", "Board", "UI Kit"] },
 ];
 const mobileMain: Tab[] = ["Guard", "Manual", "Receipt"];
 const mobileMore: Tab[] = [
@@ -53,16 +53,16 @@ const mobileMore: Tab[] = [
   "UI Kit",
 ];
 const navLabel: Record<Tab, string> = {
-  Guard: "Cek Pembayaran",
-  Manual: "Bayar Manual",
-  Receipt: "Bukti",
-  Errors: "Bantuan",
-  Lifecycle: "Status Transaksi",
-  Policy: "Aturan Keamanan",
-  Risk: "Penjelasan Risiko",
-  Board: "Papan Tim",
-  Architecture: "Cara Kerja",
-  "UI Kit": "Panduan UI",
+  Guard: "Check Payment",
+  Manual: "Manual Payment",
+  Receipt: "Receipt",
+  Errors: "Help",
+  Lifecycle: "Transaction Status",
+  Policy: "Safety Policy",
+  Risk: "Risk Breakdown",
+  Board: "Team Board",
+  Architecture: "How It Works",
+  "UI Kit": "UI Guide",
 };
 export default function App() {
   const [tab, setTab] = useState<Tab>("Guard"),
@@ -130,7 +130,7 @@ export default function App() {
         </nav>
         <div className="dashboard-sidebar-foot p-5">
           <div className="mb-3 flex items-center justify-between text-[10px]">
-            <span className="text-slate-600">Jaringan demo</span>
+            <span className="text-slate-600">Demo network</span>
             <span className="flex items-center gap-1.5 font-semibold text-amber-300">
               <i className="h-1.5 w-1.5 rounded-full bg-amber-400" />
               BOT Testnet
@@ -140,7 +140,7 @@ export default function App() {
             onClick={() => setGuide(true)}
             className="w-full rounded-lg border border-white/[.07] px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/[.03] hover:text-white"
           >
-            ? Buka panduan
+            ? Open guide
           </button>
         </div>
       </aside>
@@ -171,7 +171,7 @@ export default function App() {
             />
             <span>
               <b className="block text-[11px] font-semibold">
-                {connected ? "Wallet demo" : "Hubungkan demo"}
+                {connected ? "Demo wallet" : "Connect demo"}
               </b>
               {connected && (
                 <Mono className="block text-[9px] text-slate-600">
@@ -198,7 +198,7 @@ export default function App() {
       </main>
       <footer className="dashboard-footer mx-auto hidden max-w-[1320px] justify-between px-10 py-8 text-[10px] lg:flex">
         <span>AgentGuard · Simulasi lokal</span>
-        <span>Tidak mengirim dana sungguhan</span>
+        <span>No real funds are sent</span>
       </footer>
       <nav className="dashboard-mobile-nav fixed inset-x-0 bottom-0 z-50 px-2 py-2 backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
@@ -235,7 +235,7 @@ export default function App() {
               className="dashboard-mobile-sheet absolute inset-x-3 bottom-3 rounded-2xl p-3"
             >
               <div className="mb-2 flex items-center justify-between px-2 py-2">
-                <b className="text-sm">Menu lainnya</b>
+                <b className="text-sm">More</b>
                 <button
                   onClick={() => setOpen(false)}
                   className="p-2 text-slate-500"
@@ -261,7 +261,7 @@ export default function App() {
                 }}
                 className="mt-2 w-full rounded-lg border border-white/[.07] px-3 py-3 text-left text-xs text-slate-400"
               >
-                ? Buka panduan singkat
+                ? Open quick guide
               </button>
             </motion.div>
           </motion.div>
@@ -356,20 +356,19 @@ function Manual() {
   return (
     <motion.div {...fadeUp} className="mx-auto max-w-[560px]">
       <Head
-        eyebrow="Cara alternatif"
-        title="Bayar tanpa perintah AI"
-        desc="Isi penerima dan nominal secara langsung. Aturan keamanan tetap diperiksa."
+        eyebrow="Alternative flow"
+        title="Pay without an AI instruction"
+        desc="Enter the recipient and amount directly. Safety rules still apply."
       />
       <div className="mb-4 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
         <Icon name="warning" />
         <span>
-          Gunakan formulir ini jika pemeriksaan perintah AI sedang tidak
-          tersedia.
+          Use this form when AI instruction analysis is not available.
         </span>
       </div>
       <Card className="p-6">
         <div>
-          <Label>Alamat penerima</Label>
+          <Label>Recipient address</Label>
           <motion.div
             animate={{
               borderColor: blurred
@@ -401,12 +400,12 @@ function Manual() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-2 text-xs text-rose-400"
             >
-              Alamat belum lengkap. Masukkan alamat 0x dengan 42 karakter.
+              The address is incomplete. Enter a 42-character 0x address.
             </motion.p>
           )}
         </div>
         <div className="mt-5">
-          <Label>Nominal yang dikirim</Label>
+          <Label>Amount to send</Label>
           <div className="relative">
             <input
               value={amount}
@@ -430,15 +429,15 @@ function Manual() {
           </div>
           <div className="mt-1 flex justify-between text-[10px] text-slate-600">
             <span>0 BOT</span>
-            <span>Batas 0.02 BOT</span>
+            <span>0.02 BOT limit</span>
           </div>
         </div>
         <div className="mt-5">
-          <Label>Catatan (opsional)</Label>
-          <input className="input" placeholder="Pembayaran ini untuk apa?" />
+          <Label>Memo (optional)</Label>
+          <input className="input" placeholder="What is this payment for?" />
         </div>
         <div className="my-5 rounded-xl bg-indigo-500/[.07] p-3 text-center text-xs text-indigo-200">
-          Batas sekali bayar 0.02 BOT · Sisa batas hari ini 0.07 BOT
+          Per-transaction limit 0.02 BOT · Daily remaining 0.07 BOT
         </div>
         <MBtn
           onClick={send}
@@ -449,15 +448,15 @@ function Manual() {
           {sending ? (
             <>
               <Spinner />
-              Menunggu persetujuan demo…
+              Waiting for demo approval…
             </>
           ) : done ? (
             <>
               <Icon name="check" />
-              Pembayaran demo disetujui
+              Demo payment approved
             </>
           ) : (
-            "Periksa lalu lanjutkan"
+            "Review and continue"
           )}
         </MBtn>
       </Card>
@@ -468,18 +467,18 @@ const hash =
   "0x8f2a7a4c19b82d9e116dc51b830031be39ab503b6f152e06bb41d7dff08291c4";
 function Receipt() {
   const rows = [
-    ["ID transaksi", <Mono>0x8f2a…91c4</Mono>, hash],
+    ["Transaction ID", <Mono>0x8f2a…91c4</Mono>, hash],
     [
-      "Alamat kontrak",
+      "Contract address",
       <Mono>0xA918…e4D2</Mono>,
       "0xA9188fCe9073D09984C4450243Ee42f2A81be4D2",
     ],
-    ["Biaya jaringan", <Mono>21,438 gas</Mono>],
-    ["Nomor blok", <Mono>#1,942,816</Mono>],
-    ["Keputusan keamanan", <Pill status="ALLOW" label="AMAN" />],
-    ["Catatan jaringan", <Mono>PaymentExecuted</Mono>],
-    ["Nominal", <b className="text-emerald-400">0.01 BOT</b>],
-    ["Penerima", <Mono>0x3A9F…c76A</Mono>],
+    ["Network fee", <Mono>21,438 gas</Mono>],
+    ["Block number", <Mono>#1,942,816</Mono>],
+    ["Guard decision", <Pill status="ALLOW" label="SAFE" />],
+    ["Network event", <Mono>PaymentExecuted</Mono>],
+    ["Amount", <b className="text-emerald-400">0.01 BOT</b>],
+    ["Recipient", <Mono>0x3A9F…c76A</Mono>],
   ] as [string, ReactNode, string?][];
   return (
     <motion.div {...fadeUp} className="mx-auto max-w-[560px]">
@@ -493,9 +492,9 @@ function Receipt() {
           >
             <Icon name="check" size={30} />
           </motion.div>
-          <h1 className="mt-4 text-2xl font-semibold">Pembayaran berhasil</h1>
+          <h1 className="mt-4 text-2xl font-semibold">Payment confirmed</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Simulasi selesai di BOT Chain Testnet dalam 9.8 detik.
+            Simulation completed on BOT Chain Testnet in 9.8 seconds.
           </p>
         </div>
         <Divider />
@@ -513,7 +512,7 @@ function Receipt() {
           ))}
         </motion.div>
         <MBtn variant="approve" className="mt-5 w-full py-3">
-          Lihat di BOT Chain Explorer <Icon name="arrow" />
+          View on BOT Chain Explorer <Icon name="arrow" />
         </MBtn>
       </Card>
     </motion.div>

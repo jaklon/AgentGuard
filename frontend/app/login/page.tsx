@@ -47,7 +47,7 @@ export default function LoginPage() {
   return (
     <main ref={root} className="login-page">
       <Link href="/" className="login-back login-reveal">
-        ← Kembali ke introduction
+        ← Back to introduction
       </Link>
       <section className="login-story">
         <div className="login-reveal login-brand">
@@ -56,17 +56,17 @@ export default function LoginPage() {
         <div className="login-reveal login-copy">
           <p className="login-eyebrow">DEMO ACCESS · BOT TESTNET</p>
           <h1>
-            Masuk ke ruang
+            Enter the human
             <br />
-            kendali manusia.
+            control room.
           </h1>
           <p>
-            Tidak ada akun asli, password, atau wallet yang diperlukan. Ini
-            adalah simulasi frontend untuk menunjukkan alur keamanan AgentGuard.
+            No real account, password, or wallet is required. This frontend
+            simulation demonstrates the AgentGuard safety flow.
           </p>
         </div>
         <div className="login-reveal login-promise">
-          <i /> Tidak ada dana sungguhan yang dikirim
+          <i /> No real funds are sent
         </div>
       </section>
 
@@ -79,10 +79,10 @@ export default function LoginPage() {
         </div>
         <div className="login-reveal login-panel-copy">
           <span>SIMULATED IDENTITY</span>
-          <h2>Pengguna Demo</h2>
+          <h2>Demo User</h2>
           <p>
-            Profil ini hanya ada di browser dan siap dipakai untuk menjelajahi
-            seluruh pengalaman.
+            This profile exists only in your browser and is ready to explore the
+            full experience.
           </p>
         </div>
         <div className="login-reveal login-profile">
@@ -101,17 +101,17 @@ export default function LoginPage() {
         >
           {loading ? (
             <>
-              <span className="login-spinner" /> Menyiapkan ruang demo…
+              <span className="login-spinner" /> Preparing your demo workspace…
             </>
           ) : (
             <>
-              Masuk sebagai pengguna demo <span>→</span>
+              Continue as demo user <span>→</span>
             </>
           )}
         </button>
         <p className="login-disclaimer login-reveal">
-          Dengan melanjutkan, kamu masuk ke simulasi lokal. Tidak ada
-          autentikasi atau koneksi wallet nyata.
+          By continuing, you enter a local simulation. There is no real
+          authentication or wallet connection.
         </p>
       </section>
     </main>
