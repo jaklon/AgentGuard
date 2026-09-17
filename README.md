@@ -8,7 +8,7 @@ This repository implements the baseline from `AgentGuard_Implementation_Plan.doc
 
 | Path | Owner | Purpose |
 | --- | --- | --- |
-| `frontend/` | Rafly Alif | React UI, MetaMask, preview, transaction state |
+| `frontend/` | Rafly Alif | Next.js frontend-only product demo and local policy simulation |
 | `backend/` | Syahrafi + Project Lead | FastAPI, SQLite, RPC adapter, rate limiting |
 | `guard-engine/` | Project Lead | AI extraction adapter and deterministic policy engine |
 | `blockchain/` | Project Lead | Solidity policy/payment contract, tests, deploy script |
@@ -17,11 +17,11 @@ This repository implements the baseline from `AgentGuard_Implementation_Plan.doc
 
 ## Safety invariants
 
-- The browser signs through MetaMask; no backend endpoint accepts a private key or seed phrase.
+- No backend endpoint accepts a private key or seed phrase; any future wallet flow must keep signing in the user's wallet.
 - AI output is untrusted and validated before deterministic rules run.
 - The smart contract repeats transaction limit, daily limit, expiry, recipient, and pause checks.
 - Prompts are not persisted. The audit table stores a SHA-256 digest and sanitized decision metadata.
-- `VITE_*` values are public by definition and must never contain credentials.
+- `NEXT_PUBLIC_*` values are public by definition and must never contain credentials.
 
 ## Local setup
 
@@ -39,7 +39,7 @@ In a second terminal:
 make frontend-dev
 ```
 
-The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. With no `OPENAI_API_KEY`, the backend uses its deterministic/manual fallback so the safety flow remains demonstrable.
+The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. The current frontend is an explicitly local, frontend-only prototype: it does not connect a wallet, send funds, or call the API. The backend remains available for API and guard-engine integration testing.
 
 ### Frontend-only preview
 
@@ -73,7 +73,7 @@ cp .env.example .env
 npm run deploy:testnet
 ```
 
-Copy the resulting address into `BOTCHAIN_CONTRACT_ADDRESS` and `VITE_BOTCHAIN_CONTRACT_ADDRESS`, rebuild the frontend, and run the smoke test. Never commit the deployment key or `.env` file.
+Copy the resulting address into `BOTCHAIN_CONTRACT_ADDRESS` for the API and run the smoke test. Never commit the deployment key or `.env` file.
 
 ## Production
 
