@@ -12,4 +12,5 @@ if [[ ! -x "$NODE_BIN" ]]; then
 fi
 
 cd "$PROJECT_DIR/frontend"
+export PATH="$(dirname "$NODE_BIN"):$PATH"
 exec "$NODE_BIN" "$NPM_CLI" run dev
