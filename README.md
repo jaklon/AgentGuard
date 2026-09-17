@@ -41,6 +41,22 @@ make frontend-dev
 
 The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. With no `OPENAI_API_KEY`, the backend uses its deterministic/manual fallback so the safety flow remains demonstrable.
 
+### Frontend-only preview
+
+For the local frontend-only demo prepared in this workspace, run from the repository root:
+
+```bash
+./start-frontend.sh
+```
+
+Keep that terminal open while using the preview. The script uses the workspace-local Node.js runtime and starts Next.js on port `5173`.
+
+The frontend flow is available at:
+
+- `/` — product introduction
+- `/login` — simulated demo login
+- `/dashboard` — the complete AgentGuard safety workspace
+
 ## Test and build
 
 ```bash

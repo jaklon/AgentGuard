@@ -1,462 +1,668 @@
-import { useEffect, useMemo, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { isAddress, keccak256, parseEther, toBytes, type Address, type Hex } from "viem";
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useState, type ReactNode } from "react";
+import DashboardView from "./views/DashboardView";
+import ErrorsView from "./views/ErrorsView";
+import LifecycleView from "./views/LifecycleView";
+import PolicyView from "./views/PolicyView";
+import RiskView from "./views/RiskView";
+import BoardView from "./views/BoardView";
+import Onboarding from "./components/Onboarding";
 import {
-  useAccount,
-  useChainId,
-  useConnect,
-  useDisconnect,
-  useSwitchChain,
-  useWaitForTransactionReceipt,
-  useWriteContract,
-} from "wagmi";
-import { z } from "zod";
-
-import { evaluateGuard, fetchPolicy, simulatePayment } from "./api";
-import { DecisionCard } from "./components/DecisionCard";
-import { PolicyPanel } from "./components/PolicyPanel";
-import {
-  agentGuardAbi,
-  botChainTestnet,
-  contractAddress,
-  explorerBaseUrl,
-} from "./contract";
-import type { GuardDecision, PolicySnapshot, Simulation } from "./types";
-
-const formSchema = z
-  .object({
-    mode: z.enum(["natural", "manual"]),
-    prompt: z.string(),
-    recipient: z.string(),
-    amount: z.string(),
-    purpose: z.string().max(160),
-  })
-  .superRefine((value, context) => {
-    if (value.mode === "natural" && value.prompt.trim().length < 8) {
-      context.addIssue({ code: "custom", path: ["prompt"], message: "Add a complete instruction." });
-    }
-    if (value.mode === "manual") {
-      if (!isAddress(value.recipient)) {
-        context.addIssue({ code: "custom", path: ["recipient"], message: "Use a complete 0x address." });
-      }
-      if (!/^(?:0|[1-9]\d*)(?:\.\d{1,18})?$/.test(value.amount)) {
-        context.addIssue({ code: "custom", path: ["amount"], message: "Use an exact decimal amount." });
-      }
-    }
-  });
-
-type FormValues = z.infer<typeof formSchema>;
-
-function fallbackPolicy(wallet: string): PolicySnapshot {
-  return {
-    wallet,
-    chain_id: botChainTestnet.id,
-    per_transaction_limit_bot: "0.02",
-    daily_limit_bot: "0.10",
-    spent_today_bot: "0",
-    expires_at: null,
-    allowlist_enforced: false,
-    allowed_recipients: [],
-    paused: false,
-  };
-}
-
-function Shield() {
-  return (
-    <svg viewBox="0 0 32 36" aria-hidden="true" className="h-9 w-8">
-      <path
-        d="M16 1.5 29 6v10.2c0 8.1-5.2 14.7-13 18.3C8.2 30.9 3 24.3 3 16.2V6l13-4.5Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.2"
-      />
-      <path d="m10 18 4 4 8-9" fill="none" stroke="currentColor" strokeWidth="2.2" />
-    </svg>
-  );
-}
-
+  Card,
+  CardHeader,
+  CopyBtn,
+  Divider,
+  Icon,
+  Label,
+  MBtn,
+  Mono,
+  Pill,
+  Row,
+  Spinner,
+  T,
+  fadeUp,
+  spring,
+  stagger,
+} from "./shared";
+type Tab =
+  | "Guard"
+  | "Manual"
+  | "Receipt"
+  | "Errors"
+  | "Lifecycle"
+  | "Policy"
+  | "Risk"
+  | "Board"
+  | "Architecture"
+  | "UI Kit";
+const navGroups: { label: string; items: Tab[] }[] = [
+  { label: "Pembayaran", items: ["Guard", "Manual", "Receipt"] },
+  { label: "Keamanan", items: ["Policy", "Risk", "Lifecycle", "Errors"] },
+  { label: "Tentang proyek", items: ["Architecture", "Board", "UI Kit"] },
+];
+const mobileMain: Tab[] = ["Guard", "Manual", "Receipt"];
+const mobileMore: Tab[] = [
+  "Policy",
+  "Risk",
+  "Lifecycle",
+  "Errors",
+  "Architecture",
+  "Board",
+  "UI Kit",
+];
+const navLabel: Record<Tab, string> = {
+  Guard: "Cek Pembayaran",
+  Manual: "Bayar Manual",
+  Receipt: "Bukti",
+  Errors: "Bantuan",
+  Lifecycle: "Status Transaksi",
+  Policy: "Aturan Keamanan",
+  Risk: "Penjelasan Risiko",
+  Board: "Papan Tim",
+  Architecture: "Cara Kerja",
+  "UI Kit": "Panduan UI",
+};
 export default function App() {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { connect, connectors, error: connectError, isPending: isConnecting } = useConnect();
-  const { disconnect } = useDisconnect();
-  const { switchChain, isPending: isSwitching } = useSwitchChain();
-  const { writeContractAsync, error: writeError, isPending: isSigning } = useWriteContract();
-  const [decision, setDecision] = useState<GuardDecision>();
-  const [simulation, setSimulation] = useState<Simulation>();
-  const [intentHash, setIntentHash] = useState<Hex>();
-  const [transactionHash, setTransactionHash] = useState<Hex>();
-  const [formError, setFormError] = useState("");
-  const [evaluating, setEvaluating] = useState(false);
-  const [warningAcknowledged, setWarningAcknowledged] = useState(false);
-
-  const policyQuery = useQuery({
-    queryKey: ["policy", address],
-    queryFn: () => fetchPolicy(address!),
-    enabled: Boolean(address && contractAddress),
-    retry: 1,
-  });
-
-  const activePolicy = useMemo(
-    () => (address ? policyQuery.data ?? fallbackPolicy(address) : undefined),
-    [address, policyQuery.data],
-  );
-
-  const receipt = useWaitForTransactionReceipt({ hash: transactionHash });
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      mode: "natural",
-      prompt:
-        "Send 0.01 BOT to 0x2222222222222222222222222222222222222222 for the demo",
-      recipient: "0x2222222222222222222222222222222222222222",
-      amount: "0.01",
-      purpose: "Hackathon demo",
-    },
-  });
-  const mode = watch("mode");
-
+  const [tab, setTab] = useState<Tab>("Guard"),
+    [open, setOpen] = useState(false),
+    [connected, setConnected] = useState(true),
+    [guide, setGuide] = useState(false);
   useEffect(() => {
-    setDecision(undefined);
-    setSimulation(undefined);
-    setIntentHash(undefined);
-    setWarningAcknowledged(false);
-  }, [mode]);
+    setGuide(localStorage.getItem("agentguard-guide-seen") !== "1");
+  }, []);
 
-  async function onEvaluate(values: FormValues) {
-    if (!address || !activePolicy) {
-      setFormError("Connect MetaMask before evaluating a payment.");
-      return;
-    }
-    setEvaluating(true);
-    setFormError("");
-    setSimulation(undefined);
-    setTransactionHash(undefined);
-    setWarningAcknowledged(false);
-    try {
-      const result = await evaluateGuard(
-        values.mode === "natural"
-          ? { prompt: values.prompt.trim(), policy: activePolicy }
-          : {
-              manual_intent: {
-                action: "payment",
-                recipient: values.recipient,
-                amount_bot: values.amount,
-                chain_id: botChainTestnet.id,
-                purpose: values.purpose,
-              },
-              policy: activePolicy,
-            },
-      );
-      setDecision(result);
-      if (!result.intent || result.decision === "BLOCK") return;
-
-      const hash = keccak256(
-        toBytes(
-          [
-            address.toLowerCase(),
-            result.intent.recipient.toLowerCase(),
-            result.intent.amount_bot,
-            result.intent.purpose,
-            result.evaluated_at,
-          ].join("|"),
-        ),
-      );
-      setIntentHash(hash);
-      if (!contractAddress || !policyQuery.data) {
-        setSimulation({
-          allowed: false,
-          reason: "Review-only mode: deploy the contract and create an on-chain policy.",
-          estimated_gas: null,
-        });
-        return;
-      }
-      setSimulation(
-        await simulatePayment({
-          wallet: address,
-          recipient: result.intent.recipient,
-          amount_bot: result.intent.amount_bot,
-          intent_hash: hash,
-        }),
-      );
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Evaluation failed.");
-    } finally {
-      setEvaluating(false);
-    }
-  }
-
-  async function executePayment() {
-    if (!decision?.intent || !intentHash || !contractAddress) return;
-    if (chainId !== botChainTestnet.id) {
-      switchChain({ chainId: botChainTestnet.id });
-      return;
-    }
-    try {
-      const hash = await writeContractAsync({
-        address: contractAddress,
-        abi: agentGuardAbi,
-        functionName: "executePayment",
-        args: [decision.intent.recipient as Address, intentHash],
-        value: parseEther(decision.intent.amount_bot),
-      });
-      setTransactionHash(hash);
-    } catch {
-      // wagmi exposes the sanitized wallet error below.
-    }
-  }
-
-  const canPay =
-    simulation?.allowed &&
-    decision?.decision !== "BLOCK" &&
-    (decision?.decision !== "WARN" || warningAcknowledged) &&
-    Boolean(policyQuery.data);
-
+  const View: Record<Tab, ReactNode> = {
+    Guard: <DashboardView />,
+    Manual: <Manual />,
+    Receipt: <Receipt />,
+    Errors: <ErrorsView />,
+    Lifecycle: <LifecycleView />,
+    Policy: <PolicyView />,
+    Risk: <RiskView />,
+    Board: <BoardView />,
+    Architecture: <Architecture />,
+    "UI Kit": <UIKit />,
+  };
   return (
-    <div className="min-h-screen overflow-hidden bg-ink text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(114,230,177,.09),transparent_35%),radial-gradient(circle_at_85%_20%,rgba(184,243,74,.07),transparent_30%)]" />
-      <header className="relative border-b border-line/70">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5 lg:px-8">
-          <a className="flex items-center gap-3 text-lime" href="/">
-            <Shield />
-            <span className="text-lg font-black tracking-tight text-white">AgentGuard</span>
-          </a>
-          <div className="flex items-center gap-3">
-            <span className="hidden rounded-full border border-line px-3 py-1 text-xs text-fog sm:inline">
-              BOT Chain · Testnet {botChainTestnet.id}
+    <div className="grid-bg min-h-screen lg:pl-[248px]">
+      <Onboarding
+        open={guide}
+        onClose={() => {
+          localStorage.setItem("agentguard-guide-seen", "1");
+          setGuide(false);
+        }}
+      />
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-white/[.07] bg-[#0d1320] lg:flex">
+        <button
+          onClick={() => setTab("Guard")}
+          className="flex h-[72px] items-center gap-3 border-b border-white/[.06] px-5 text-left"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500 text-white">
+            <Icon name="shield" size={20} />
+          </span>
+          <span>
+            <b className="block text-sm tracking-tight">AgentGuard</b>
+            <span className="text-[10px] text-slate-600">Payment safety</span>
+          </span>
+        </button>
+        <nav className="flex-1 overflow-y-auto px-3 py-5">
+          {navGroups.map((group) => (
+            <div key={group.label} className="mb-6">
+              <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[.16em] text-slate-600">
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => (
+                  <NavItem
+                    key={item}
+                    label={navLabel[item]}
+                    active={tab === item}
+                    onClick={() => setTab(item)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+        <div className="border-t border-white/[.06] p-4">
+          <div className="mb-3 flex items-center justify-between text-[10px]">
+            <span className="text-slate-600">Jaringan demo</span>
+            <span className="flex items-center gap-1.5 font-semibold text-amber-300">
+              <i className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              BOT Testnet
             </span>
-            {isConnected ? (
-              <button className="button-secondary" onClick={() => disconnect()}>
-                {address?.slice(0, 6)}…{address?.slice(-4)}
-              </button>
-            ) : (
-              <button
-                className="button-primary"
-                disabled={isConnecting || !connectors[0]}
-                onClick={() => connectors[0] && connect({ connector: connectors[0] })}
-              >
-                {isConnecting ? "Connecting…" : "Connect MetaMask"}
-              </button>
-            )}
           </div>
+          <button
+            onClick={() => setGuide(true)}
+            className="w-full rounded-lg border border-white/[.07] px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/[.03] hover:text-white"
+          >
+            ? Buka panduan
+          </button>
+        </div>
+      </aside>
+
+      <header className="sticky top-0 z-30 border-b border-white/[.06] bg-[#0a0e1ae8] backdrop-blur-xl">
+        <div className="flex h-16 items-center gap-3 px-4 md:px-7">
+          <button
+            onClick={() => setTab("Guard")}
+            className="flex items-center gap-2 lg:hidden"
+          >
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-500">
+              <Icon name="shield" size={17} />
+            </span>
+            <b className="text-sm">AgentGuard</b>
+          </button>
+          <div className="hidden lg:block">
+            <p className="text-[10px] text-slate-600">Sedang dibuka</p>
+            <h1 className="text-sm font-semibold">{navLabel[tab]}</h1>
+          </div>
+          <button
+            onClick={() => setConnected(!connected)}
+            className="ml-auto flex items-center gap-3 rounded-lg border border-white/[.08] bg-white/[.025] px-3 py-2 text-left"
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-600"}`}
+            />
+            <span>
+              <b className="block text-[11px] font-semibold">
+                {connected ? "Wallet demo" : "Hubungkan demo"}
+              </b>
+              {connected && (
+                <Mono className="block text-[9px] text-slate-600">
+                  0x71C…3A9 · 1.50 BOT
+                </Mono>
+              )}
+            </span>
+          </button>
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
-        <section className="grid gap-10 lg:grid-cols-[1.25fr_.75fr] lg:items-end">
-          <div>
-            <p className="eyebrow">Human approval is the final authority</p>
-            <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[.98] tracking-[-0.04em] sm:text-6xl">
-              Verify the intent.
-              <span className="block text-lime">Then sign.</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-fog">
-              AgentGuard turns a payment request into a strict preview, checks your policy twice,
-              and never touches your wallet keys.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line text-center">
-            {[
-              ["01", "Interpret"],
-              ["02", "Guard"],
-              ["03", "Approve"],
-            ].map(([number, label]) => (
-              <div className="bg-panel px-2 py-5" key={number}>
-                <span className="font-mono text-xs text-lime">{number}</span>
-                <span className="mt-1 block text-xs text-fog">{label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {isConnected && chainId !== botChainTestnet.id && (
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4">
-            <p className="text-sm text-amber-100">MetaMask is connected to the wrong network.</p>
-            <button
-              className="button-secondary"
-              disabled={isSwitching}
-              onClick={() => switchChain({ chainId: botChainTestnet.id })}
-            >
-              Switch to BOT Chain
-            </button>
-          </div>
-        )}
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-[.72fr_1.28fr]">
-          <PolicyPanel policy={policyQuery.data} onSaved={() => policyQuery.refetch()} />
-
-          <section className="rounded-3xl border border-line bg-panel/70 p-6 shadow-glow sm:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="eyebrow">Step 3</p>
-                <h2 className="mt-2 text-2xl font-bold">Describe the payment</h2>
-              </div>
-              <div className="flex rounded-xl bg-black/20 p-1 text-xs">
-                <button
-                  className={"mode-button " + (mode === "natural" ? "mode-active" : "")}
-                  onClick={() => setValue("mode", "natural")}
-                  type="button"
-                >
-                  Natural language
-                </button>
-                <button
-                  className={"mode-button " + (mode === "manual" ? "mode-active" : "")}
-                  onClick={() => setValue("mode", "manual")}
-                  type="button"
-                >
-                  Manual fallback
-                </button>
-              </div>
-            </div>
-
-            <form className="mt-7" onSubmit={handleSubmit(onEvaluate)}>
-              <input type="hidden" {...register("mode")} />
-              {mode === "natural" ? (
-                <label className="field">
-                  <span>Payment instruction</span>
-                  <textarea rows={4} {...register("prompt")} />
-                  {errors.prompt && <em>{errors.prompt.message}</em>}
-                </label>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="field sm:col-span-2">
-                    <span>Recipient</span>
-                    <input placeholder="0x…" {...register("recipient")} />
-                    {errors.recipient && <em>{errors.recipient.message}</em>}
-                  </label>
-                  <label className="field">
-                    <span>Amount · BOT</span>
-                    <input inputMode="decimal" {...register("amount")} />
-                    {errors.amount && <em>{errors.amount.message}</em>}
-                  </label>
-                  <label className="field">
-                    <span>Purpose</span>
-                    <input {...register("purpose")} />
-                  </label>
-                </div>
-              )}
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
-                <p className="text-xs leading-5 text-fog">
-                  The AI may interpret; deterministic rules and the contract decide.
-                </p>
-                <button className="button-primary" disabled={evaluating || !address}>
-                  {evaluating ? "Checking…" : "Run safety check"}
-                </button>
-              </div>
-            </form>
-            {(formError || connectError) && (
-              <p className="mt-4 break-words rounded-xl bg-rose-400/10 p-3 text-sm text-rose-200">
-                {formError || connectError?.message}
-              </p>
-            )}
-          </section>
-        </div>
-
-        {decision && decision.intent && (
-          <section className="mt-6 grid gap-6 lg:grid-cols-[.72fr_1.28fr]">
-            <DecisionCard result={decision} />
-            <div className="rounded-3xl border border-line bg-panel/70 p-6 sm:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="eyebrow">Step 4</p>
-                  <h2 className="mt-2 text-2xl font-bold">Transaction preview</h2>
-                </div>
-                <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-fog">
-                  {simulation?.estimated_gas
-                    ? "Gas " + simulation.estimated_gas.toLocaleString()
-                    : "Simulation pending"}
-                </span>
-              </div>
-              <dl className="mt-7 space-y-4 text-sm">
-                <div className="preview-row">
-                  <dt>Recipient</dt>
-                  <dd className="font-mono">{decision.intent.recipient}</dd>
-                </div>
-                <div className="preview-row">
-                  <dt>Amount</dt>
-                  <dd>{decision.intent.amount_bot} BOT</dd>
-                </div>
-                <div className="preview-row">
-                  <dt>Network</dt>
-                  <dd>BOT Chain Testnet · {decision.intent.chain_id}</dd>
-                </div>
-                <div className="preview-row">
-                  <dt>Contract</dt>
-                  <dd className="font-mono">{contractAddress ?? "Not configured"}</dd>
-                </div>
-                <div className="preview-row">
-                  <dt>Purpose</dt>
-                  <dd>{decision.intent.purpose || "Not supplied"}</dd>
-                </div>
-              </dl>
-
-              {simulation && (
-                <p
-                  className={
-                    "mt-5 rounded-xl p-3 text-sm " +
-                    (simulation.allowed
-                      ? "bg-mint/10 text-mint"
-                      : "bg-amber-400/10 text-amber-100")
-                  }
-                >
-                  {simulation.reason}
-                </p>
-              )}
-
-              {decision.decision === "WARN" && (
-                <label className="mt-5 flex items-start gap-3 text-sm text-fog">
-                  <input
-                    checked={warningAcknowledged}
-                    onChange={(event) => setWarningAcknowledged(event.target.checked)}
-                    type="checkbox"
-                  />
-                  I reviewed the warning and still want MetaMask to show the final confirmation.
-                </label>
-              )}
-
-              <button
-                className="button-primary mt-6 w-full"
-                disabled={!canPay || isSigning || receipt.isLoading}
-                onClick={executePayment}
-              >
-                {isSigning
-                  ? "Awaiting signature…"
-                  : receipt.isLoading
-                    ? "Transaction pending…"
-                    : "Review and approve in MetaMask"}
-              </button>
-              {writeError && (
-                <p className="mt-3 break-words text-sm text-rose-200">{writeError.message}</p>
-              )}
-              {receipt.isSuccess && transactionHash && (
-                <a
-                  className="mt-4 block rounded-xl border border-mint/30 bg-mint/10 p-4 text-center text-sm font-bold text-mint"
-                  href={explorerBaseUrl + "/tx/" + transactionHash}
-                  rel="noreferrer"
-                  target="_blank"
-                >
-                  Confirmed · Open transaction in BOTScan ↗
-                </a>
-              )}
-              {receipt.isError && (
-                <p className="mt-3 text-sm text-rose-200">Transaction reverted or RPC timed out.</p>
-              )}
-            </div>
-          </section>
-        )}
+      <main className="page-pad mx-auto max-w-[1180px] px-4 py-7 pb-28 md:px-8 lg:pb-10">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            {View[tab]}
+          </motion.div>
+        </AnimatePresence>
       </main>
-      <footer className="relative mx-auto flex max-w-7xl flex-wrap justify-between gap-3 border-t border-line px-5 py-8 text-xs text-fog lg:px-8">
-        <span>AgentGuard · Build Week Hackathon Vol. 2</span>
-        <span>No keys. No automatic signing. No hidden recipient.</span>
+      <footer className="mx-auto hidden max-w-[1180px] justify-between border-t border-white/[.05] px-8 py-6 text-[10px] text-slate-700 lg:flex">
+        <span>AgentGuard · Simulasi lokal</span>
+        <span>Tidak mengirim dana sungguhan</span>
       </footer>
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[.08] bg-[#0d1320f5] px-2 py-2 backdrop-blur-xl lg:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+          {mobileMain.map((item) => (
+            <MobileNav
+              key={item}
+              label={navLabel[item]}
+              active={tab === item}
+              onClick={() => setTab(item)}
+            />
+          ))}
+          <MobileNav
+            label="Menu"
+            active={mobileMore.includes(tab)}
+            onClick={() => setOpen(true)}
+          />
+        </div>
+      </nav>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-black/70 p-4 backdrop-blur-sm lg:hidden"
+            onClick={() => setOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={spring}
+              onClick={(event) => event.stopPropagation()}
+              className="absolute inset-x-3 bottom-3 rounded-xl border border-white/10 bg-[#131d2e] p-3"
+            >
+              <div className="mb-2 flex items-center justify-between px-2 py-2">
+                <b className="text-sm">Menu lainnya</b>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="p-2 text-slate-500"
+                >
+                  <Icon name="x" size={17} />
+                </button>
+              </div>
+              {mobileMore.map((item) => (
+                <NavItem
+                  key={item}
+                  label={navLabel[item]}
+                  active={tab === item}
+                  onClick={() => {
+                    setTab(item);
+                    setOpen(false);
+                  }}
+                />
+              ))}
+              <button
+                onClick={() => {
+                  setGuide(true);
+                  setOpen(false);
+                }}
+                className="mt-2 w-full rounded-lg border border-white/[.07] px-3 py-3 text-left text-xs text-slate-400"
+              >
+                ? Buka panduan singkat
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+function NavItem({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <motion.button
+      onClick={onClick}
+      animate={{
+        color: active ? "#eef2f8" : "#6f8199",
+        backgroundColor: active ? "rgba(99,102,241,.11)" : "rgba(0,0,0,0)",
+      }}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium"
+    >
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${active ? "bg-indigo-400" : "bg-slate-700"}`}
+      />
+      {label}
+    </motion.button>
+  );
+}
+function MobileNav({
+  active,
+  onClick,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-2 py-2 text-[10px] font-semibold ${active ? "bg-indigo-500/12 text-indigo-300" : "text-slate-500"}`}
+    >
+      <span
+        className={`mx-auto mb-1 block h-1 w-4 rounded-full ${active ? "bg-indigo-400" : "bg-transparent"}`}
+      />
+      {label}
+    </button>
+  );
+}
+function Head({
+  eyebrow,
+  title,
+  desc,
+}: {
+  eyebrow: string;
+  title: string;
+  desc?: string;
+}) {
+  return (
+    <div className="mb-7">
+      <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">
+        {eyebrow}
+      </p>
+      <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
+      {desc && <p className="mt-2 text-sm text-slate-400">{desc}</p>}
+    </div>
+  );
+}
+function Manual() {
+  const [address, setAddress] = useState(""),
+    [amount, setAmount] = useState(""),
+    [blurred, setBlurred] = useState(false),
+    [sending, setSending] = useState(false),
+    [done, setDone] = useState(false);
+  const validA = /^0x[0-9a-fA-F]{40}$/.test(address),
+    num = Number(amount),
+    validN = num > 0 && num <= 0.02;
+  const send = () => {
+    setSending(true);
+    setTimeout(() => {
+      setSending(false);
+      setDone(true);
+    }, 1500);
+  };
+  return (
+    <motion.div {...fadeUp} className="mx-auto max-w-[560px]">
+      <Head
+        eyebrow="Cara alternatif"
+        title="Bayar tanpa perintah AI"
+        desc="Isi penerima dan nominal secara langsung. Aturan keamanan tetap diperiksa."
+      />
+      <div className="mb-4 flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
+        <Icon name="warning" />
+        <span>
+          Gunakan formulir ini jika pemeriksaan perintah AI sedang tidak
+          tersedia.
+        </span>
+      </div>
+      <Card className="p-6">
+        <div>
+          <Label>Alamat penerima</Label>
+          <motion.div
+            animate={{
+              borderColor: blurred
+                ? validA
+                  ? T.allow
+                  : T.block
+                : "rgba(255,255,255,.09)",
+            }}
+            className="flex rounded-xl border bg-[#0a101c]"
+          >
+            <input
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              onBlur={() => setBlurred(true)}
+              className="min-w-0 flex-1 bg-transparent p-3 text-sm outline-none mono"
+              placeholder="0x…"
+            />
+            {blurred && (
+              <span
+                className={`grid w-11 place-items-center ${validA ? "text-emerald-400" : "text-rose-400"}`}
+              >
+                <Icon name={validA ? "check" : "x"} />
+              </span>
+            )}
+          </motion.div>
+          {blurred && !validA && (
+            <motion.p
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 text-xs text-rose-400"
+            >
+              Alamat belum lengkap. Masukkan alamat 0x dengan 42 karakter.
+            </motion.p>
+          )}
+        </div>
+        <div className="mt-5">
+          <Label>Nominal yang dikirim</Label>
+          <div className="relative">
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              type="number"
+              className="input mono"
+              placeholder="0.00"
+            />
+            <span className="absolute right-3 top-3 text-xs text-slate-500">
+              BOT
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+            <motion.div
+              animate={{
+                width: `${Math.min(100, ((num || 0) / 0.02) * 100)}%`,
+                backgroundColor: num > 0.02 ? T.block : T.blue,
+              }}
+              className="h-full rounded-full"
+            />
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] text-slate-600">
+            <span>0 BOT</span>
+            <span>Batas 0.02 BOT</span>
+          </div>
+        </div>
+        <div className="mt-5">
+          <Label>Catatan (opsional)</Label>
+          <input className="input" placeholder="Pembayaran ini untuk apa?" />
+        </div>
+        <div className="my-5 rounded-xl bg-indigo-500/[.07] p-3 text-center text-xs text-indigo-200">
+          Batas sekali bayar 0.02 BOT · Sisa batas hari ini 0.07 BOT
+        </div>
+        <MBtn
+          onClick={send}
+          disabled={!validA || !validN || sending || done}
+          variant={done ? "approve" : "primary"}
+          className="w-full py-3"
+        >
+          {sending ? (
+            <>
+              <Spinner />
+              Menunggu persetujuan demo…
+            </>
+          ) : done ? (
+            <>
+              <Icon name="check" />
+              Pembayaran demo disetujui
+            </>
+          ) : (
+            "Periksa lalu lanjutkan"
+          )}
+        </MBtn>
+      </Card>
+    </motion.div>
+  );
+}
+const hash =
+  "0x8f2a7a4c19b82d9e116dc51b830031be39ab503b6f152e06bb41d7dff08291c4";
+function Receipt() {
+  const rows = [
+    ["ID transaksi", <Mono>0x8f2a…91c4</Mono>, hash],
+    [
+      "Alamat kontrak",
+      <Mono>0xA918…e4D2</Mono>,
+      "0xA9188fCe9073D09984C4450243Ee42f2A81be4D2",
+    ],
+    ["Biaya jaringan", <Mono>21,438 gas</Mono>],
+    ["Nomor blok", <Mono>#1,942,816</Mono>],
+    ["Keputusan keamanan", <Pill status="ALLOW" label="AMAN" />],
+    ["Catatan jaringan", <Mono>PaymentExecuted</Mono>],
+    ["Nominal", <b className="text-emerald-400">0.01 BOT</b>],
+    ["Penerima", <Mono>0x3A9F…c76A</Mono>],
+  ] as [string, ReactNode, string?][];
+  return (
+    <motion.div {...fadeUp} className="mx-auto max-w-[560px]">
+      <Card className="overflow-hidden p-6">
+        <div className="text-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ ...spring, delay: 0.1 }}
+            className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-500/15 text-emerald-400"
+          >
+            <Icon name="check" size={30} />
+          </motion.div>
+          <h1 className="mt-4 text-2xl font-semibold">Pembayaran berhasil</h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Simulasi selesai di BOT Chain Testnet dalam 9.8 detik.
+          </p>
+        </div>
+        <Divider />
+        <motion.div variants={stagger} initial="initial" animate="animate">
+          {rows.map(([l, v, c]) => (
+            <motion.div
+              key={l}
+              variants={{
+                initial: { opacity: 0, x: -8 },
+                animate: { opacity: 1, x: 0 },
+              }}
+            >
+              <Row label={l} value={v} copy={c} />
+            </motion.div>
+          ))}
+        </motion.div>
+        <MBtn variant="approve" className="mt-5 w-full py-3">
+          Lihat di BOT Chain Explorer <Icon name="arrow" />
+        </MBtn>
+      </Card>
+    </motion.div>
+  );
+}
+function Architecture() {
+  const layers = [
+    [
+      "L1 · USER",
+      "Browser + MetaMask",
+      "User intent, wallet approval & signature",
+      "#6366f1",
+    ],
+    [
+      "L2 · FRONTEND",
+      "React + Vite · wagmi/viem",
+      "Interface, preview & transaction state",
+      "#3b82f6",
+    ],
+    [
+      "L3 · BACKEND",
+      "FastAPI + Guard Engine + SQLite",
+      "Intent parsing, validation & audit",
+      "#8b5cf6",
+    ],
+    [
+      "L4 · BLOCKCHAIN",
+      "BOT Chain + Solidity Contract",
+      "Policy enforcement & settlement",
+      "#10b981",
+    ],
+    [
+      "L5 · INFRA",
+      "Oracle Cloud VM + Docker + Caddy",
+      "Runtime, TLS & observability",
+      "#f59e0b",
+    ],
+  ];
+  return (
+    <motion.div {...fadeUp} className="mx-auto max-w-3xl">
+      <Head
+        eyebrow="System map"
+        title="Architecture"
+        desc="Reference architecture from the implementation plan. This prototype simulates every external layer locally."
+      />
+      <motion.div
+        variants={stagger}
+        initial="initial"
+        animate="animate"
+        className="space-y-0"
+      >
+        {layers.map(([l, n, d, c], i) => (
+          <div key={l}>
+            <motion.div
+              variants={{
+                initial: { opacity: 0, x: -20 },
+                animate: { opacity: 1, x: 0 },
+              }}
+            >
+              <Card className="flex items-center gap-5 p-5">
+                <div
+                  className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-sm font-bold"
+                  style={{ background: `${c}15`, color: c }}
+                >
+                  {i + 1}
+                </div>
+                <div className="flex-1">
+                  <span
+                    className="text-[10px] font-bold tracking-[.16em]"
+                    style={{ color: c }}
+                  >
+                    {l}
+                  </span>
+                  <h2 className="mt-1 font-semibold">{n}</h2>
+                  <p className="mt-1 text-xs text-slate-500">{d}</p>
+                </div>
+                <Pill status={i === 3 ? "CHAIN 968" : "LAYER"} dot={false} />
+              </Card>
+            </motion.div>
+            {i < 4 && (
+              <div className="flex h-12 flex-col items-center justify-center text-[9px] text-slate-600">
+                <span>↓</span>
+                <span>{i === 1 ? "REST API" : "JSON-RPC · EVENTS"}</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </motion.div>
+    </motion.div>
+  );
+}
+function UIKit() {
+  const colors = Object.entries(T)
+    .filter(([, v]) => typeof v === "string" && v.startsWith("#"))
+    .slice(0, 9);
+  return (
+    <motion.div {...fadeUp}>
+      <Head
+        eyebrow="Design foundation"
+        title="UI Kit"
+        desc="Reusable visual language for every AgentGuard state."
+      />
+      <Card className="p-6">
+        <CardHeader title="Color tokens" />
+        <motion.div
+          variants={stagger}
+          initial="initial"
+          animate="animate"
+          className="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-9"
+        >
+          {colors.map(([n, c]) => (
+            <motion.div
+              variants={{
+                initial: { opacity: 0, scale: 0.8 },
+                animate: { opacity: 1, scale: 1 },
+              }}
+              whileHover={{ y: -4 }}
+              key={n}
+              className="rounded-xl border border-white/[.07] bg-white/[.025] p-2"
+            >
+              <div
+                className="aspect-square rounded-lg"
+                style={{ background: c }}
+              />
+              <p className="mt-2 text-[10px] font-semibold">{n}</p>
+              <p className="mt-1 truncate text-[8px] text-slate-600 mono">
+                {c}
+              </p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </Card>
+      <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <Card className="p-6">
+          <CardHeader title="Status & context" />
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Pill status="ALLOW" />
+            <Pill status="WARN" />
+            <Pill status="BLOCK" />
+            <Pill status="TESTNET" />
+            <Pill status="AI GUARD" />
+          </div>
+        </Card>
+        <Card className="p-6">
+          <CardHeader title="Button variants" />
+          <div className="mt-5 flex flex-wrap gap-3">
+            <MBtn>Primary</MBtn>
+            <MBtn variant="secondary">Secondary</MBtn>
+            <MBtn variant="danger">Danger</MBtn>
+            <MBtn disabled>Disabled</MBtn>
+            <MBtn className="px-3 py-1.5 text-xs">Small</MBtn>
+            <MBtn variant="approve">Approve</MBtn>
+          </div>
+        </Card>
+      </div>
+    </motion.div>
   );
 }
