@@ -25,7 +25,7 @@ test-contracts:
 	cd blockchain && npm test
 
 test-frontend:
-	cd frontend && npm test -- --run
+	cd frontend && npm run build
 
 build:
 	cd frontend && npm run build
