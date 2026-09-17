@@ -86,7 +86,7 @@ export default function App() {
     "UI Kit": <UIKit />,
   };
   return (
-    <div className="grid-bg min-h-screen lg:pl-[248px]">
+    <div className="dashboard-shell min-h-screen lg:pl-[260px]">
       <Onboarding
         open={guide}
         onClose={() => {
@@ -94,20 +94,22 @@ export default function App() {
           setGuide(false);
         }}
       />
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-white/[.07] bg-[#0d1320] lg:flex">
+      <aside className="dashboard-sidebar fixed inset-y-0 left-0 z-40 hidden w-[260px] flex-col lg:flex">
         <button
           onClick={() => setTab("Guard")}
-          className="flex h-[72px] items-center gap-3 border-b border-white/[.06] px-5 text-left"
+          className="dashboard-brand flex h-[84px] items-center gap-3 px-6 text-left"
         >
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-indigo-500 text-white">
+          <span className="dashboard-brand-mark grid h-10 w-10 place-items-center rounded-full">
             <Icon name="shield" size={20} />
           </span>
           <span>
             <b className="block text-sm tracking-tight">AgentGuard</b>
-            <span className="text-[10px] text-slate-600">Payment safety</span>
+            <span className="text-[9px] uppercase tracking-[.12em] text-slate-600">
+              Human approval
+            </span>
           </span>
         </button>
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
+        <nav className="dashboard-index flex-1 overflow-y-auto px-4 py-7">
           {navGroups.map((group) => (
             <div key={group.label} className="mb-6">
               <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[.16em] text-slate-600">
@@ -126,7 +128,7 @@ export default function App() {
             </div>
           ))}
         </nav>
-        <div className="border-t border-white/[.06] p-4">
+        <div className="dashboard-sidebar-foot p-5">
           <div className="mb-3 flex items-center justify-between text-[10px]">
             <span className="text-slate-600">Jaringan demo</span>
             <span className="flex items-center gap-1.5 font-semibold text-amber-300">
@@ -143,24 +145,26 @@ export default function App() {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 border-b border-white/[.06] bg-[#0a0e1ae8] backdrop-blur-xl">
+      <header className="dashboard-header sticky top-0 z-30 backdrop-blur-xl">
         <div className="flex h-16 items-center gap-3 px-4 md:px-7">
           <button
             onClick={() => setTab("Guard")}
             className="flex items-center gap-2 lg:hidden"
           >
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-500">
+            <span className="dashboard-brand-mark grid h-8 w-8 place-items-center rounded-full">
               <Icon name="shield" size={17} />
             </span>
             <b className="text-sm">AgentGuard</b>
           </button>
           <div className="hidden lg:block">
-            <p className="text-[10px] text-slate-600">Sedang dibuka</p>
+            <p className="text-[9px] font-bold uppercase tracking-[.15em] text-slate-600">
+              AgentGuard workspace
+            </p>
             <h1 className="text-sm font-semibold">{navLabel[tab]}</h1>
           </div>
           <button
             onClick={() => setConnected(!connected)}
-            className="ml-auto flex items-center gap-3 rounded-lg border border-white/[.08] bg-white/[.025] px-3 py-2 text-left"
+            className="dashboard-wallet ml-auto flex items-center gap-3 rounded-full px-4 py-2 text-left"
           >
             <span
               className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-600"}`}
@@ -179,7 +183,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="page-pad mx-auto max-w-[1180px] px-4 py-7 pb-28 md:px-8 lg:pb-10">
+      <main className="dashboard-main page-pad mx-auto max-w-[1320px] px-4 py-8 pb-28 md:px-10 lg:pb-14">
         <AnimatePresence mode="wait">
           <motion.div
             key={tab}
@@ -192,11 +196,11 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <footer className="mx-auto hidden max-w-[1180px] justify-between border-t border-white/[.05] px-8 py-6 text-[10px] text-slate-700 lg:flex">
+      <footer className="dashboard-footer mx-auto hidden max-w-[1320px] justify-between px-10 py-8 text-[10px] lg:flex">
         <span>AgentGuard · Simulasi lokal</span>
         <span>Tidak mengirim dana sungguhan</span>
       </footer>
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[.08] bg-[#0d1320f5] px-2 py-2 backdrop-blur-xl lg:hidden">
+      <nav className="dashboard-mobile-nav fixed inset-x-0 bottom-0 z-50 px-2 py-2 backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
           {mobileMain.map((item) => (
             <MobileNav
@@ -228,7 +232,7 @@ export default function App() {
               exit={{ y: 20, opacity: 0 }}
               transition={spring}
               onClick={(event) => event.stopPropagation()}
-              className="absolute inset-x-3 bottom-3 rounded-xl border border-white/10 bg-[#131d2e] p-3"
+              className="dashboard-mobile-sheet absolute inset-x-3 bottom-3 rounded-2xl p-3"
             >
               <div className="mb-2 flex items-center justify-between px-2 py-2">
                 <b className="text-sm">Menu lainnya</b>
@@ -279,13 +283,13 @@ function NavItem({
     <motion.button
       onClick={onClick}
       animate={{
-        color: active ? "#eef2f8" : "#6f8199",
-        backgroundColor: active ? "rgba(99,102,241,.11)" : "rgba(0,0,0,0)",
+        color: active ? "#101110" : "#77786f",
+        backgroundColor: active ? "rgba(80,70,229,.11)" : "rgba(0,0,0,0)",
       }}
-      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium"
+      className="dashboard-nav-item flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium"
     >
       <span
-        className={`h-1.5 w-1.5 rounded-full ${active ? "bg-indigo-400" : "bg-slate-700"}`}
+        className={`h-1.5 w-1.5 rounded-full ${active ? "bg-[#5046e5]" : "bg-black/20"}`}
       />
       {label}
     </motion.button>
@@ -303,10 +307,10 @@ function MobileNav({
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-2 py-2 text-[10px] font-semibold ${active ? "bg-indigo-500/12 text-indigo-300" : "text-slate-500"}`}
+      className={`rounded-lg px-2 py-2 text-[10px] font-semibold ${active ? "bg-[#5046e5] text-white" : "text-[#66675f]"}`}
     >
       <span
-        className={`mx-auto mb-1 block h-1 w-4 rounded-full ${active ? "bg-indigo-400" : "bg-transparent"}`}
+        className={`mx-auto mb-1 block h-1 w-4 rounded-full ${active ? "bg-[#b9f54a]" : "bg-transparent"}`}
       />
       {label}
     </button>
@@ -322,11 +326,13 @@ function Head({
   desc?: string;
 }) {
   return (
-    <div className="mb-7">
-      <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">
+    <div className="editorial-head mb-9">
+      <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#5046e5]">
         {eyebrow}
       </p>
-      <h1 className="mt-2 text-3xl font-semibold">{title}</h1>
+      <h1 className="mt-2 text-4xl font-semibold tracking-[-.045em] md:text-6xl">
+        {title}
+      </h1>
       {desc && <p className="mt-2 text-sm text-slate-400">{desc}</p>}
     </div>
   );

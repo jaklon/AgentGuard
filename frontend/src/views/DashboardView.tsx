@@ -92,23 +92,23 @@ export default function DashboardView() {
   };
 
   return (
-    <motion.div {...fadeUp}>
-      <section className="mb-5 border-b border-white/[.08] pb-6">
+    <motion.div {...fadeUp} className="guard-home">
+      <section className="guard-hero mb-8 pb-9">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-          <div className="max-w-2xl">
-            <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[.12em] text-indigo-300">
+          <div className="max-w-4xl">
+            <div className="guard-kicker mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.16em]">
               <span className="h-px w-6 bg-indigo-400" /> Pemeriksaan pembayaran
               AI
             </div>
-            <h1 className="text-2xl font-semibold leading-tight tracking-tight md:text-3xl">
-              Cek pembayaran AI dalam hitungan detik.
+            <h1 className="guard-title font-semibold leading-[.93] tracking-[-.055em]">
+              Periksa sebelum uang bergerak.
             </h1>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
+            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-400 md:text-lg">
               Cukup tulis permintaannya. AgentGuard langsung memberi tahu apakah
               pembayaran aman, perlu diperiksa, atau harus diblokir.
             </p>
           </div>
-          <div className="border-l-2 border-emerald-500/50 py-1 pl-4 text-xs text-slate-500 lg:max-w-[290px]">
+          <div className="guard-demo-note py-4 pl-5 text-xs lg:max-w-[300px]">
             <div className="flex items-center gap-2 font-semibold text-emerald-300">
               <span className="h-2 w-2 rounded-full bg-emerald-400" /> Mode demo
               aman
@@ -120,7 +120,7 @@ export default function DashboardView() {
         </div>
       </section>
 
-      <details className="group mb-6 rounded-lg border border-white/[.07] bg-white/[.015] p-4">
+      <details className="guard-glossary group mb-8 rounded-2xl p-5">
         <summary className="cursor-pointer list-none text-sm font-semibold text-slate-300">
           <span className="mr-2 text-indigo-400">?</span>Belum familiar dengan
           istilahnya? Klik untuk penjelasan singkat
@@ -146,8 +146,8 @@ export default function DashboardView() {
         </div>
       </details>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <Card className="order-2 h-fit p-5 lg:order-1 lg:sticky lg:top-24">
+      <div className="guard-workspace grid gap-7 lg:grid-cols-[300px_1fr]">
+        <Card className="guard-policy-card order-2 h-fit p-6 lg:order-1 lg:sticky lg:top-28">
           <CardHeader
             eyebrow="Aturan keamananmu"
             title="Batas wallet demo"
@@ -192,7 +192,7 @@ export default function DashboardView() {
         </Card>
 
         <div className="order-1 lg:order-2">
-          <Card className="p-5 md:p-6">
+          <Card className="guard-command-card p-6 md:p-8">
             <div className="mb-4 flex items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">
@@ -216,7 +216,7 @@ export default function DashboardView() {
                 if ((event.ctrlKey || event.metaKey) && event.key === "Enter")
                   run();
               }}
-              className="input min-h-32 resize-none text-base leading-7"
+              className="input guard-command-input min-h-40 resize-none text-base leading-7 md:text-lg"
               placeholder="Contoh: Kirim 0.01 BOT ke 0x3A9… untuk tagihan server"
             />
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -238,7 +238,7 @@ export default function DashboardView() {
             <MBtn
               onClick={run}
               disabled={!text.trim() || loading}
-              className="mt-5 w-full py-3"
+              className="mt-6 w-full py-4"
             >
               {loading ? (
                 <>

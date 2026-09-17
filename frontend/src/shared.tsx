@@ -1,16 +1,16 @@
 import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
 import { useState, type ReactNode } from "react";
 export const T = {
-  bg: "#0a0e1a",
-  panel: "#0f1623",
-  card: "#131d2e",
-  card2: "#1a2640",
-  border: "rgba(255,255,255,.07)",
-  border2: "rgba(255,255,255,.12)",
-  text: "#eef2f8",
-  muted: "#8899b0",
-  dim: "#4a5e78",
-  blue: "#6366f1",
+  bg: "#f1efe8",
+  panel: "#e3dfd4",
+  card: "#faf9f4",
+  card2: "#e7e3d9",
+  border: "rgba(16,17,16,.15)",
+  border2: "rgba(16,17,16,.28)",
+  text: "#101110",
+  muted: "#66675f",
+  dim: "#8b8c84",
+  blue: "#5046e5",
   allow: "#10b981",
   warn: "#f59e0b",
   block: "#f43f5e",
@@ -129,12 +129,13 @@ export function MBtn({
   ...props
 }: BtnProps) {
   const styles = {
-    primary: "bg-indigo-500 text-white",
-    secondary: "bg-white/[.04] text-slate-200 border border-white/10",
-    danger: "bg-rose-500/12 text-rose-400 border border-rose-500/25",
-    approve: "bg-emerald-500 text-slate-950",
-    amber: "bg-amber-500 text-slate-950",
-    ghost: "bg-transparent text-slate-400",
+    primary: "bg-[#101110] text-white hover:bg-[#5046e5]",
+    secondary:
+      "bg-transparent text-[#101110] border border-black/20 hover:border-black/50",
+    danger: "bg-rose-500/10 text-rose-700 border border-rose-500/30",
+    approve: "bg-[#b9f54a] text-[#101110] border border-[#101110]",
+    amber: "bg-amber-400 text-[#101110] border border-[#101110]",
+    ghost: "bg-transparent text-[#66675f]",
   };
   return (
     <motion.button
@@ -180,7 +181,7 @@ export function CardHeader({
     <div className="flex items-start justify-between gap-4">
       <div>
         {eyebrow && (
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-[.18em] text-indigo-400">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[.18em] text-[#5046e5]">
             {eyebrow}
           </p>
         )}
@@ -192,7 +193,7 @@ export function CardHeader({
 }
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <label className="mb-2 block text-xs font-medium text-slate-400">
+    <label className="mb-2 block text-xs font-medium text-[#66675f]">
       {children}
     </label>
   );
@@ -207,7 +208,7 @@ export function Mono({
   return <span className={`mono ${className}`}>{children}</span>;
 }
 export function Divider() {
-  return <div className="my-5 h-px bg-white/[.07]" />;
+  return <div className="my-5 h-px bg-black/[.12]" />;
 }
 export function CopyBtn({ text }: { text: string }) {
   const [c, setC] = useState(false);
@@ -255,8 +256,8 @@ export function ScoreRing({
           cy="55"
           r={r}
           fill="none"
-          stroke="white"
-          strokeOpacity=".06"
+          stroke={T.text}
+          strokeOpacity=".1"
           strokeWidth="8"
         />
         <motion.circle
@@ -282,7 +283,7 @@ export function ScoreRing({
         >
           {score}
         </motion.b>
-        <span className="text-[10px] text-slate-500">/100 RISK</span>
+        <span className="text-[10px] text-[#77786f]">/100 RISK</span>
       </div>
     </div>
   );
@@ -296,8 +297,8 @@ export const Row = ({
   value: ReactNode;
   copy?: string;
 }) => (
-  <div className="flex items-center justify-between gap-4 py-3 border-b border-white/[.055] last:border-0">
-    <span className="text-xs text-slate-500">{label}</span>
+  <div className="flex items-center justify-between gap-4 border-b border-black/[.09] py-3 last:border-0">
+    <span className="text-xs text-[#77786f]">{label}</span>
     <div className="flex items-center min-w-0 text-right text-sm font-medium">
       {value}
       {copy && <CopyBtn text={copy} />}
