@@ -1,0 +1,33 @@
+name: Feature task
+description: Track one bounded AgentGuard deliverable
+title: "[AREA] "
+labels: ["status:todo"]
+body:
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: [Must, Should, Could]
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Frontend, Backend, Guard engine, Blockchain, Infrastructure, Documentation]
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Acceptance outcome
+      description: Describe an observable result, not an implementation activity.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: List tests, screenshots, or on-chain evidence required.
+    validations:
+      required: true
