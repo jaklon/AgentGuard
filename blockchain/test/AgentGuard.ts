@@ -5,7 +5,7 @@ import { time } from "@nomicfoundation/hardhat-network-helpers";
 describe("AgentGuard", function () {
   async function deployFixture() {
     const [owner, payer, recipient, stranger] = await ethers.getSigners();
-    const contract = await ethers.deployContract("AgentGuard");
+    const contract = await ethers.deployContract("AgentGuard", [owner.address]);
     await contract.waitForDeployment();
     const expiresAt = (await time.latest()) + 86_400;
     await contract.connect(payer).setPolicy(
@@ -15,6 +15,7 @@ describe("AgentGuard", function () {
       true,
     );
     await contract.connect(payer).setRecipient(recipient.address, true);
+    expect(await contract.owner()).to.equal(owner.address);
     return { contract, owner, payer, recipient, stranger };
   }
 
