@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import ClassVar
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    _rate_limit_config_version: ClassVar[int] = 0
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -18,6 +20,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     agent_allowed_origins: str = "http://localhost:5173,http://localhost"
     api_rate_limit_per_minute: int = Field(default=30, ge=1, le=1000)
+    rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
     max_request_bytes: int = Field(default=16_384, ge=1024, le=1_048_576)
 
     database_url: str = "sqlite:///./backend/data/agentguard.db"
@@ -36,7 +39,24 @@ class Settings(BaseSettings):
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.agent_allowed_origins.split(",") if origin.strip()]
 
+    @property
+    def rate_limit_requests(self) -> int:
+        """Compatibility alias used by the rate-limit service and its tests."""
+        return self.api_rate_limit_per_minute
+
+    @rate_limit_requests.setter
+    def rate_limit_requests(self, value: int) -> None:
+        self.api_rate_limit_per_minute = value
+        type(self)._rate_limit_config_version += 1
+
+    @property
+    def rate_limit_config_version(self) -> int:
+        return type(self)._rate_limit_config_version
+
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = get_settings()
