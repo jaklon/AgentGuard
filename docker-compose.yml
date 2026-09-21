@@ -8,13 +8,14 @@ services:
     environment:
       APP_ENV: ${APP_ENV:-production}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      AGENT_ALLOWED_ORIGINS: ${AGENT_ALLOWED_ORIGINS:-https://localhost}
+      AGENT_ALLOWED_ORIGINS: ${AGENT_ALLOWED_ORIGINS:-https://agentguard.my.id}
       API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-30}
       MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-16384}
       BOTCHAIN_TESTNET_RPC_URL: ${BOTCHAIN_TESTNET_RPC_URL:-https://rpc.bohr.life}
       BOTCHAIN_TESTNET_CHAIN_ID: ${BOTCHAIN_TESTNET_CHAIN_ID:-968}
       BOTCHAIN_TESTNET_EXPLORER_URL: ${BOTCHAIN_TESTNET_EXPLORER_URL:-https://scan.bohr.life}
       BOTCHAIN_CONTRACT_ADDRESS: ${BOTCHAIN_CONTRACT_ADDRESS:-}
+      BOTCHAIN_ALLOCATION_WALLET: ${BOTCHAIN_ALLOCATION_WALLET:-0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91}
       DATABASE_URL: sqlite:////data/agentguard.db
       AI_PROVIDER: ${AI_PROVIDER:-openai}
       AI_MODEL: ${AI_MODEL:-gpt-5-mini}
@@ -55,7 +56,7 @@ services:
       context: .
       dockerfile: infrastructure/Caddy.Dockerfile
     environment:
-      DOMAIN: ${DOMAIN:-localhost}
+      DOMAIN: ${DOMAIN:-agentguard.my.id}
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"

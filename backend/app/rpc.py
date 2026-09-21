@@ -42,6 +42,16 @@ class BotChainRpc:
         result = await self.call("eth_chainId", [])
         return int(result, 16)
 
+    async def contract_code(self) -> str:
+        return await self.call("eth_getCode", [self._require_contract(), "latest"])
+
+    async def validate_contract(self) -> None:
+        if await self.chain_id() != self._settings.botchain_testnet_chain_id:
+            raise RpcError("BOT Chain RPC returned an unexpected chain ID")
+        code = await self.contract_code()
+        if not isinstance(code, str) or code == "0x":
+            raise RpcError("AgentGuard contract bytecode is not deployed at the configured address")
+
     async def policy(self, wallet: str) -> PolicySnapshot:
         contract = self._require_contract()
         encoded_wallet = encode(["address"], [wallet]).hex()
