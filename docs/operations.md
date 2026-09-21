@@ -18,7 +18,7 @@ OS patching, OCI firewall rules, DNS, spending alerts, teammate SSH keys, and Gi
     cp .env.example .env
     chmod 600 .env
 
-Set the real domain, exact HTTPS origin, contract address, and server-side OpenAI key. Keep testnet chain 968 until the release gate explicitly approves mainnet.
+Set `DOMAIN=agentguard.my.id`, `AGENT_ALLOWED_ORIGINS=https://agentguard.my.id`, `BOTCHAIN_ALLOCATION_WALLET=0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91`, the deployed testnet contract address, and the server-side OpenAI key. For deployment only, set `DEPLOYER_PRIVATE_KEY` and `CONTRACT_OWNER_ADDRESS` in `blockchain/.env`, run the testnet deploy command, then remove the private key. Keep testnet chain 968 until the release gate explicitly approves mainnet.
 
     docker compose config
     docker compose up -d --build

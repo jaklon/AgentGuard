@@ -39,7 +39,7 @@ In a second terminal:
 make frontend-dev
 ```
 
-The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. The current frontend is an explicitly local, frontend-only prototype: it does not connect a wallet, send funds, or call the API. The backend remains available for API and guard-engine integration testing.
+The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. The frontend connects through an injected EVM wallet, fetches its policy from the API/contract, simulates an ALLOW decision, and submits the final payment only after wallet approval. Set BOTCHAIN_CONTRACT_ADDRESS before starting it.
 
 ### Frontend-only preview
 
@@ -77,7 +77,7 @@ Copy the resulting address into `BOTCHAIN_CONTRACT_ADDRESS` for the API and run 
 
 ## Production
 
-Set `DOMAIN`, origins, contract address, and the server-side AI key in `/srv/agentguard/.env`, then:
+Set `DOMAIN=agentguard.my.id`, `AGENT_ALLOWED_ORIGINS=https://agentguard.my.id`, contract address, allocation wallet, and the server-side AI key in `/srv/agentguard/.env`, then:
 
 ```bash
 docker compose config

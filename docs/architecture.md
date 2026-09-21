@@ -11,7 +11,7 @@
 
 1. Model output is parsed as untrusted data with extra fields forbidden.
 2. Python applies chain, expiry, pause, recipient, transaction-limit, and daily-limit checks.
-3. The current frontend is a local-only prototype and does not connect a wallet, call the API, or submit transactions.
+3. The frontend uses an injected EVM wallet for account access and transaction signing; it never receives wallet secrets.
 4. Any production wallet integration must retain MetaMask as the key and signature boundary.
 5. The contract repeats authoritative policy checks and records an anti-replay intent hash before transferring BOT.
 6. The API stores only a prompt digest and sanitized decision fields; raw prompts and wallet secrets are not persisted.

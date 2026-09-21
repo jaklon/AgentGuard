@@ -62,7 +62,7 @@ contract AgentGuard is Ownable2Step, Pausable, ReentrancyGuard {
         bool fundedFromBalance
     );
 
-    constructor() Ownable(msg.sender) {}
+    constructor(address initialOwner) Ownable(initialOwner) {}
 
     function setPolicy(
         uint256 perTransactionLimit,

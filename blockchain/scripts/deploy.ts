@@ -14,7 +14,12 @@ async function main() {
     throw new Error("Deployment is restricted to BOT Chain testnet or mainnet");
   }
 
-  const contract = await ethers.deployContract("AgentGuard");
+  const owner = process.env.CONTRACT_OWNER_ADDRESS?.trim();
+  if (!owner || !ethers.isAddress(owner)) {
+    throw new Error("CONTRACT_OWNER_ADDRESS must be a valid EVM address");
+  }
+
+  const contract = await ethers.deployContract("AgentGuard", [ethers.getAddress(owner)]);
   await contract.waitForDeployment();
   const address = await contract.getAddress();
   console.log(
@@ -25,6 +30,8 @@ async function main() {
         chainId: network.config.chainId,
         network: network.name,
         deployer: (await ethers.getSigners())[0].address,
+        owner: ethers.getAddress(owner),
+        deploymentTransaction: contract.deploymentTransaction()?.hash,
       },
       null,
       2,

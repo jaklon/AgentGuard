@@ -1,6 +1,6 @@
 # Six-minute demo
 
-The current Next.js frontend is a local-only simulation. Use the flow below only after the wallet and API integration described in the implementation plan has been restored; until then, demonstrate the simulated dashboard without claiming that a transaction was signed or sent.
+The live frontend reads its configuration from `/api/config`, evaluates against a server-fetched on-chain policy, and opens a wallet request only after an ALLOW decision.
 
 1. Open the public HTTPS site in a clean browser and name the safety invariant: AgentGuard never receives the wallet key.
 2. Connect the low-value test wallet and switch to BOT Chain testnet.

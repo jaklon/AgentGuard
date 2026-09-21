@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     botchain_testnet_chain_id: int = 968
     botchain_testnet_explorer_url: str = "https://scan.bohr.life"
     botchain_contract_address: str = ""
+    botchain_allocation_wallet: str = "0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91"
 
     ai_provider: str = "openai"
     ai_model: str = "gpt-5-mini"
@@ -35,6 +36,16 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.agent_allowed_origins.split(",") if origin.strip()]
+
+    @model_validator(mode="after")
+    def validate_production_settings(self) -> "Settings":
+        if self.app_env.lower() != "production":
+            return self
+        if not self.botchain_contract_address:
+            raise ValueError("BOTCHAIN_CONTRACT_ADDRESS is required in production")
+        if not self.allowed_origins or any(not origin.startswith("https://") for origin in self.allowed_origins):
+            raise ValueError("production CORS origins must be HTTPS")
+        return self
 
 
 @lru_cache

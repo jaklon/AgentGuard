@@ -24,6 +24,7 @@ from .schemas import (
     ComponentHealth,
     GuardEvaluateRequest,
     HealthResponse,
+    PublicConfigResponse,
     SimulateRequest,
     SimulateResponse,
     TransactionStatus,
@@ -75,9 +76,16 @@ async def evaluate_guard(
     db: Session = Depends(get_db),
 ) -> GuardDecision:
     try:
+        policy = await rpc.policy(payload.wallet)
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "POLICY_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+    try:
         result = await guard.evaluate(
             prompt=payload.prompt,
-            policy=payload.policy,
+            policy=policy,
             manual_intent=payload.manual_intent,
         )
     except IntentExtractionError as exc:
@@ -92,7 +100,7 @@ async def evaluate_guard(
     db.add(
         AuditRecord(
             request_id=request.state.request_id,
-            wallet=payload.policy.wallet,
+            wallet=payload.wallet,
             prompt_hash=prompt_hash,
             decision=result.decision.value,
             risk_score=result.risk_score,
@@ -122,6 +130,23 @@ async def simulate_transaction(payload: SimulateRequest) -> SimulateResponse:
         allowed=True,
         reason="Contract simulation succeeded",
         estimated_gas=gas,
+    )
+
+
+@app.get("/api/config", response_model=PublicConfigResponse)
+async def public_config() -> PublicConfigResponse:
+    if not settings.botchain_contract_address:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "CONTRACT_UNAVAILABLE", "message": "Contract address is not configured"},
+        )
+    return PublicConfigResponse(
+        chain_id=settings.botchain_testnet_chain_id,
+        chain_name="BOT Testnet",
+        rpc_url=settings.botchain_testnet_rpc_url,
+        explorer_url=settings.botchain_testnet_explorer_url,
+        contract_address=settings.botchain_contract_address,
+        allocation_wallet=settings.botchain_allocation_wallet,
     )
 
 
@@ -172,6 +197,7 @@ async def health(db: Session = Depends(get_db)) -> HealthResponse:
         database = ComponentHealth(status="error", detail="database unavailable")
 
     try:
+        await rpc.validate_contract()
         chain_id = await rpc.chain_id()
         expected = settings.botchain_testnet_chain_id
         if chain_id == expected:
