@@ -34,3 +34,6 @@ backend/data/
 *.db-wal
 *.log
 .DS_Store
+*.sqlite3
+*.db-wal
+*.db-shm

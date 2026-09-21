@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from contextlib import asynccontextmanager
 
 from agentguard_guard import (
@@ -9,12 +10,12 @@ from agentguard_guard import (
     IntentExtractionError,
     OpenAIIntentExtractor,
 )
-from fastapi import Depends, FastAPI, HTTPException, Path, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from .config import get_settings
+from .config import settings
 from .database import get_db, init_db
 from .logging import configure_logging
 from .middleware import RateLimitMiddleware, RequestContextMiddleware, RequestLimitMiddleware
@@ -28,8 +29,19 @@ from .schemas import (
     SimulateResponse,
     TransactionStatus,
 )
+from .schemas.botchain import (
+    BotChainPolicyResponse,
+    BotChainSimulateRequest,
+    BotChainSimulateResponse,
+    BotChainTransactionResponse,
+)
+from .schemas.guard import GuardEvaluateRequest as InstructionGuardEvaluateRequest
+from .schemas.guard import GuardEvaluateResponse
+from .schemas.api import GuardEvaluateRequest as LegacyGuardEvaluateRequest
+from .services.guard_engine import evaluate_intent
+from .services.mock_botchain_adapter import MockBotChainAdapter
+from .services.mock_intent_extractor import MockIntentExtractor
 
-settings = get_settings()
 configure_logging(settings.log_level)
 rpc = BotChainRpc(settings)
 
@@ -68,17 +80,37 @@ app.add_middleware(RequestLimitMiddleware, max_bytes=settings.max_request_bytes)
 app.add_middleware(RequestContextMiddleware)
 
 
-@app.post("/api/guard/evaluate", response_model=GuardDecision)
+@app.post("/api/guard/evaluate")
 async def evaluate_guard(
-    payload: GuardEvaluateRequest,
+    payload: dict,
     request: Request,
     db: Session = Depends(get_db),
-) -> GuardDecision:
+) -> dict:
+    if "instruction" in payload:
+        try:
+            instruction_request = InstructionGuardEvaluateRequest.model_validate(payload)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail="Request validation failed") from exc
+
+        intent = MockIntentExtractor().extract(instruction_request.instruction)
+        decision, risk_score, reason = evaluate_intent(intent)
+        return GuardEvaluateResponse(
+            decision=decision,
+            risk_score=risk_score,
+            reason=reason,
+            intent=intent,
+        ).model_dump(mode="json")
+
+    try:
+        legacy_payload = LegacyGuardEvaluateRequest.model_validate(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Request validation failed") from exc
+
     try:
         result = await guard.evaluate(
-            prompt=payload.prompt,
-            policy=payload.policy,
-            manual_intent=payload.manual_intent,
+            prompt=legacy_payload.prompt,
+            policy=legacy_payload.policy,
+            manual_intent=legacy_payload.manual_intent,
         )
     except IntentExtractionError as exc:
         raise HTTPException(
@@ -87,12 +119,14 @@ async def evaluate_guard(
         ) from exc
 
     prompt_hash = (
-        hashlib.sha256(payload.prompt.encode("utf-8")).hexdigest() if payload.prompt else None
+        hashlib.sha256(legacy_payload.prompt.encode("utf-8")).hexdigest()
+        if legacy_payload.prompt
+        else None
     )
     db.add(
         AuditRecord(
             request_id=request.state.request_id,
-            wallet=payload.policy.wallet,
+            wallet=legacy_payload.policy.wallet,
             prompt_hash=prompt_hash,
             decision=result.decision.value,
             risk_score=result.risk_score,
@@ -104,95 +138,36 @@ async def evaluate_guard(
         )
     )
     db.commit()
-    return result
+    return result.model_dump(mode="json")
 
 
-@app.post("/api/botchain/simulate", response_model=SimulateResponse)
-async def simulate_transaction(payload: SimulateRequest) -> SimulateResponse:
-    try:
-        gas = await rpc.simulate(
-            wallet=payload.wallet,
-            recipient=payload.recipient,
-            amount_bot=payload.amount_bot,
-            intent_hash=payload.intent_hash,
-        )
-    except RpcError as exc:
-        return SimulateResponse(allowed=False, reason=str(exc), estimated_gas=None)
-    return SimulateResponse(
-        allowed=True,
-        reason="Contract simulation succeeded",
-        estimated_gas=gas,
+@app.post("/api/botchain/simulate", response_model=BotChainSimulateResponse)
+async def simulate_transaction(payload: BotChainSimulateRequest) -> dict:
+    return MockBotChainAdapter().simulate_payment(
+        wallet=payload.wallet,
+        recipient=payload.recipient,
+        amount_bot=payload.amount_bot,
     )
 
 
-@app.get("/api/botchain/policy/{wallet}")
-async def get_policy(
-    wallet: str = Path(pattern=r"^0x[a-fA-F0-9]{40}$"),
-):
-    try:
-        return await rpc.policy(wallet)
-    except RpcError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={"code": "POLICY_UNAVAILABLE", "message": str(exc)},
-        ) from exc
+@app.get("/api/botchain/policy/{wallet}", response_model=BotChainPolicyResponse)
+async def get_policy(wallet: str) -> dict:
+    return MockBotChainAdapter().get_policy(wallet)
 
 
-@app.get("/api/botchain/transaction/{transaction_hash}", response_model=TransactionStatus)
-async def get_transaction(
-    transaction_hash: str = Path(pattern=r"^0x[a-fA-F0-9]{64}$"),
-) -> TransactionStatus:
-    try:
-        receipt = await rpc.transaction_receipt(transaction_hash)
-    except RpcError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail={"code": "RPC_UNAVAILABLE", "message": str(exc)},
-        ) from exc
-    if receipt is None:
-        status = "pending"
-        block_number = None
-    else:
-        status = "confirmed" if int(receipt["status"], 16) == 1 else "reverted"
-        block_number = int(receipt["blockNumber"], 16)
-    return TransactionStatus(
-        transaction_hash=transaction_hash,
-        status=status,
-        block_number=block_number,
-        explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{transaction_hash}",
-    )
+@app.get("/api/botchain/transaction/{transaction_hash}", response_model=BotChainTransactionResponse)
+async def get_transaction(transaction_hash: str) -> dict:
+    if not re.fullmatch(r"0x[a-fA-F0-9]{64}", transaction_hash):
+        raise HTTPException(status_code=422, detail="Request validation failed")
+    return MockBotChainAdapter().get_transaction(transaction_hash)
 
 
-@app.get("/api/health", response_model=HealthResponse)
-async def health(db: Session = Depends(get_db)) -> HealthResponse:
-    try:
-        db.execute(text("SELECT 1"))
-        database = ComponentHealth(status="ok")
-    except Exception:
-        database = ComponentHealth(status="error", detail="database unavailable")
+@app.get("/api/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok", "service": "agentguard-api"}
 
-    try:
-        chain_id = await rpc.chain_id()
-        expected = settings.botchain_testnet_chain_id
-        if chain_id == expected:
-            chain = ComponentHealth(status="ok", detail=f"chain_id={chain_id}")
-        else:
-            chain = ComponentHealth(
-                status="error",
-                detail=f"expected chain_id={expected}, received {chain_id}",
-            )
-    except RpcError:
-        chain = ComponentHealth(status="error", detail="RPC unavailable")
 
-    ai = ComponentHealth(
-        status="ok" if primary_extractor else "fallback",
-        detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
-    )
-    overall = "ok" if database.status == "ok" and chain.status == "ok" else "degraded"
-    return HealthResponse(
-        status=overall,
-        app_env=settings.app_env,
-        database=database,
-        ai_provider=ai,
-        botchain_rpc=chain,
-    )
+@app.get("/api/ready")
+async def ready(db: Session = Depends(get_db)) -> dict[str, str]:
+    db.execute(text("SELECT 1"))
+    return {"status": "ready", "service": "agentguard-api", "database": "ok"}
