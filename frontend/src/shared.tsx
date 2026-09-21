@@ -14,7 +14,7 @@ export const T = {
   allow: "#10b981",
   warn: "#f59e0b",
   block: "#f43f5e",
-  mono: "'JetBrains Mono', monospace",
+  mono: "var(--font-mono), monospace",
 };
 export const spring = { type: "spring" as const, stiffness: 380, damping: 30 };
 export const springGentle = {
