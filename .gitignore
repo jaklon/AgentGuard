@@ -11,3 +11,6 @@ build/
 coverage/
 *.log
 .DS_Store
+*.sqlite3
+*.db-wal
+*.db-shm
