@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import ClassVar
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     botchain_testnet_chain_id: int = 968
     botchain_testnet_explorer_url: str = "https://scan.bohr.life"
     botchain_contract_address: str = ""
+    botchain_allocation_wallet: str = "0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91"
 
     ai_provider: str = "openai"
     ai_model: str = "gpt-5-mini"
@@ -39,9 +40,19 @@ class Settings(BaseSettings):
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.agent_allowed_origins.split(",") if origin.strip()]
 
+    @model_validator(mode="after")
+    def validate_production_settings(self) -> "Settings":
+        if self.app_env.lower() != "production":
+            return self
+        if not self.botchain_contract_address:
+            raise ValueError("BOTCHAIN_CONTRACT_ADDRESS is required in production")
+        if not self.allowed_origins or any(not origin.startswith("https://") for origin in self.allowed_origins):
+            raise ValueError("production CORS origins must be HTTPS")
+        return self
+
+
     @property
     def rate_limit_requests(self) -> int:
-        """Compatibility alias used by the rate-limit service and its tests."""
         return self.api_rate_limit_per_minute
 
     @rate_limit_requests.setter
@@ -53,10 +64,8 @@ class Settings(BaseSettings):
     def rate_limit_config_version(self) -> int:
         return type(self)._rate_limit_config_version
 
-
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
 
 settings = get_settings()

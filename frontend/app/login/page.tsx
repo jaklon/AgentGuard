@@ -61,12 +61,12 @@ export default function LoginPage() {
             control room.
           </h1>
           <p>
-            No real account, password, or wallet is required. This frontend
+            Connect your BOT Testnet wallet from the dashboard. This frontend
             simulation demonstrates the AgentGuard safety flow.
           </p>
         </div>
         <div className="login-reveal login-promise">
-          <i /> No real funds are sent
+          <i /> Wallet signatures stay in MetaMask
         </div>
       </section>
 

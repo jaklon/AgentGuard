@@ -4,7 +4,6 @@ import time
 from collections import defaultdict, deque
 from uuid import uuid4
 
-from .config import settings
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
@@ -52,30 +51,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, *, requests_per_minute: int) -> None:  # type: ignore[no-untyped-def]
         super().__init__(app)
         self._limit = requests_per_minute
-        self._settings_version = settings.rate_limit_config_version
         self._buckets: dict[str, deque[float]] = defaultdict(deque)
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path == "/api/health":
             return await call_next(request)
 
-        # Tests and local deployments may update the shared settings object after
-        # the application is created.  Pick up that value for every request.
-        if self._settings_version != settings.rate_limit_config_version:
-            self._buckets.clear()
-            self._settings_version = settings.rate_limit_config_version
-        limit = settings.rate_limit_requests
-
         client = request.client.host if request.client else "unknown"
         now = time.monotonic()
         bucket = self._buckets[client]
         while bucket and bucket[0] <= now - 60:
             bucket.popleft()
-        if len(bucket) >= limit:
+        if len(bucket) >= self._limit:
             return JSONResponse(
-                {"detail": "Rate limit exceeded. Please try again later."},
+                {"detail": {"code": "RATE_LIMITED", "message": "Try again in one minute"}},
                 status_code=429,
-                headers={"retry-after": str(settings.rate_limit_window_seconds)},
+                headers={"retry-after": "60"},
             )
         bucket.append(now)
         return await call_next(request)
