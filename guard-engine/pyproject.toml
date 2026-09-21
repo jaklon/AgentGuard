@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Provider-agnostic intent extraction and deterministic policy evaluation for AgentGuard"
 requires-python = ">=3.12"
 dependencies = [
+  "httpx==0.28.1",
   "openai==1.107.2",
   "pydantic==2.11.7",
 ]

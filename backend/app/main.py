@@ -7,6 +7,7 @@ from agentguard_guard import (
     GuardDecision,
     GuardService,
     IntentExtractionError,
+    LlamaCppIntentExtractor,
     OpenAIIntentExtractor,
 )
 from fastapi import Depends, FastAPI, HTTPException, Path, Request
@@ -35,19 +36,34 @@ configure_logging(settings.log_level)
 rpc = BotChainRpc(settings)
 
 primary_extractor = None
+local_extractor: LlamaCppIntentExtractor | None = None
 if settings.ai_provider == "openai" and settings.openai_api_key:
     primary_extractor = OpenAIIntentExtractor(
         api_key=settings.openai_api_key,
         model=settings.ai_model,
         timeout_seconds=settings.model_timeout_seconds,
     )
-guard = GuardService(primary_extractor=primary_extractor)
+elif settings.ai_provider == "llama_cpp":
+    local_extractor = LlamaCppIntentExtractor(
+        base_url=settings.local_llm_base_url,
+        model=settings.ai_model,
+        timeout_seconds=settings.model_timeout_seconds,
+    )
+    primary_extractor = local_extractor
+guard = GuardService(
+    primary_extractor=primary_extractor,
+    primary_source="local" if local_extractor else "openai",
+)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    yield
+    try:
+        yield
+    finally:
+        if local_extractor:
+            await local_extractor.aclose()
 
 
 app = FastAPI(
@@ -210,11 +226,18 @@ async def health(db: Session = Depends(get_db)) -> HealthResponse:
     except RpcError:
         chain = ComponentHealth(status="error", detail="RPC unavailable")
 
-    ai = ComponentHealth(
-        status="ok" if primary_extractor else "fallback",
-        detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
-    )
-    overall = "ok" if database.status == "ok" and chain.status == "ok" else "degraded"
+    if local_extractor:
+        try:
+            await local_extractor.check_health()
+            ai = ComponentHealth(status="ok", detail=f"local llama.cpp: {settings.ai_model}")
+        except IntentExtractionError:
+            ai = ComponentHealth(status="error", detail="local llama.cpp unavailable")
+    else:
+        ai = ComponentHealth(
+            status="ok" if primary_extractor else "fallback",
+            detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
+        )
+    overall = "ok" if database.status == "ok" and chain.status == "ok" and ai.status != "error" else "degraded"
     return HealthResponse(
         status=overall,
         app_env=settings.app_env,

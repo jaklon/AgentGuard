@@ -96,6 +96,6 @@ class GuardDecision(BaseModel):
     reason: str = Field(min_length=1, max_length=280)
     intent: PaymentIntent | None
     warnings: list[str] = Field(default_factory=list, max_length=10)
-    source: Literal["openai", "deterministic", "manual"]
+    source: Literal["openai", "local", "deterministic", "manual"]
     transaction_hash: None = None
     evaluated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
