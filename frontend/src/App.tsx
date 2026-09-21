@@ -522,14 +522,14 @@ function Architecture() {
   const layers = [
     [
       "L1 · USER",
-      "Browser + MetaMask",
-      "User intent, wallet approval & signature",
+      "Local demo user",
+      "Simulated intent and approval flow",
       "#6366f1",
     ],
     [
       "L2 · FRONTEND",
-      "React + Vite · wagmi/viem",
-      "Interface, preview & transaction state",
+      "Next.js · React",
+      "Local interface and policy simulation",
       "#3b82f6",
     ],
     [
