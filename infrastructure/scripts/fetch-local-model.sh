@@ -14,5 +14,6 @@ TEMP="$TARGET.part"
 curl --fail --location --retry 3 --output "$TEMP" "$LOCAL_LLM_MODEL_URL"
 printf '%s  %s\n' "$LOCAL_LLM_MODEL_SHA256" "$TEMP" | sha256sum -c -
 mv "$TEMP" "$TARGET"
-chmod 600 "$TARGET"
+# The llama.cpp image may run as a non-root UID; model weights are not credentials.
+chmod 644 "$TARGET"
 printf 'Verified local model: %s\n' "$TARGET"
