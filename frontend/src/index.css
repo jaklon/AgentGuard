@@ -1,0 +1,362 @@
+@import "tailwindcss";
+
+:root {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  background: #f1efe8;
+  color: #101110;
+  font-synthesis: none;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #f1efe8;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f1efe8;
+  color: #101110;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+::selection {
+  color: #fff;
+  background: #5046e5;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #aaa79d;
+  border-radius: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  color: #101110;
+  background: #ebe8df;
+  border: 1px solid rgba(16, 17, 16, 0.22);
+  border-radius: 14px;
+  outline: none;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    background 0.2s;
+}
+
+.input:focus {
+  background: #faf9f4;
+  border-color: #5046e5;
+  box-shadow: 0 0 0 3px rgba(80, 70, 229, 0.12);
+}
+
+.input::placeholder {
+  color: #93938a;
+}
+
+.mono {
+  font-family: var(--font-mono), monospace;
+}
+
+.soft {
+  box-shadow: 0 10px 34px rgba(16, 17, 16, 0.06);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: spin 0.7s linear infinite;
+}
+
+/* The workspace continues the introduction page visual language. */
+.dashboard-shell {
+  --dash-paper: #f1efe8;
+  --dash-ink: #101110;
+  --dash-lime: #b9f54a;
+  --dash-cobalt: #5046e5;
+  --dash-muted: #6d6e66;
+  --dash-line: rgba(16, 17, 16, 0.15);
+  min-height: 100vh;
+  color: var(--dash-ink);
+  background:
+    radial-gradient(
+      circle at 94% 2%,
+      rgba(185, 245, 74, 0.2),
+      transparent 21rem
+    ),
+    var(--dash-paper);
+}
+
+.dashboard-sidebar {
+  color: var(--dash-ink);
+  background: #e2ded3;
+  border-right: 1px solid var(--dash-line);
+}
+
+.dashboard-brand {
+  color: var(--dash-ink);
+  border-bottom: 1px solid var(--dash-line);
+}
+
+.dashboard-brand-mark {
+  color: var(--dash-lime);
+  background: var(--dash-ink);
+}
+
+.dashboard-index {
+  scrollbar-width: thin;
+}
+
+.dashboard-sidebar-foot {
+  border-top: 1px solid var(--dash-line);
+}
+
+.dashboard-header {
+  color: var(--dash-ink);
+  background: rgba(241, 239, 232, 0.82);
+  border-bottom: 1px solid var(--dash-line);
+}
+
+.dashboard-wallet {
+  background: rgba(250, 249, 244, 0.78);
+  border: 1px solid var(--dash-line);
+  box-shadow: 0 4px 16px rgba(16, 17, 16, 0.05);
+}
+
+.dashboard-main {
+  min-height: calc(100vh - 65px);
+}
+
+.dashboard-footer {
+  color: #85857c;
+  border-top: 1px solid var(--dash-line);
+}
+
+.dashboard-mobile-nav,
+.dashboard-mobile-sheet {
+  color: var(--dash-ink);
+  background: rgba(250, 249, 244, 0.94);
+  border: 1px solid var(--dash-line);
+  box-shadow: 0 -8px 32px rgba(16, 17, 16, 0.08);
+}
+
+.dashboard-mobile-nav {
+  border-width: 1px 0 0;
+}
+
+.dashboard-nav-item:hover {
+  background: rgba(16, 17, 16, 0.045) !important;
+}
+
+.dashboard-shell [class*="text-slate-"] {
+  color: var(--dash-muted);
+}
+
+.dashboard-shell [class*="text-indigo-"] {
+  color: var(--dash-cobalt);
+}
+
+.dashboard-shell [class*="border-white"] {
+  border-color: var(--dash-line);
+}
+
+.dashboard-shell [class*="bg-white/"] {
+  background-color: rgba(16, 17, 16, 0.04);
+}
+
+.dashboard-shell [class*="bg-[#0a101c]"] {
+  color: var(--dash-ink);
+  background: #ebe8df;
+}
+
+.dashboard-shell .soft {
+  border-radius: 20px;
+}
+
+.editorial-head {
+  padding: 18px 0 26px;
+  border-bottom: 1px solid var(--dash-line);
+}
+
+.editorial-head h1 {
+  max-width: 900px;
+  line-height: 0.96;
+}
+
+/* Main guard screen */
+.guard-hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--dash-line);
+}
+
+.guard-hero::after {
+  position: absolute;
+  z-index: 0;
+  top: -42px;
+  right: 0;
+  content: "01";
+  color: rgba(80, 70, 229, 0.09);
+  font-size: clamp(100px, 15vw, 220px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.08em;
+  pointer-events: none;
+}
+
+.guard-hero > div {
+  position: relative;
+  z-index: 1;
+}
+
+.guard-kicker {
+  color: var(--dash-cobalt);
+}
+
+.guard-kicker span {
+  background: var(--dash-cobalt);
+}
+
+.guard-title {
+  max-width: 820px;
+  font-size: clamp(48px, 6.5vw, 94px);
+}
+
+.guard-demo-note {
+  background: var(--dash-ink);
+  color: #aaa99f !important;
+  border-left: 5px solid var(--dash-lime);
+  border-radius: 0 14px 14px 0;
+}
+
+.guard-demo-note [class*="text-emerald-"] {
+  color: var(--dash-lime);
+}
+
+.guard-glossary {
+  background: rgba(250, 249, 244, 0.64);
+  border: 1px solid var(--dash-line);
+}
+
+.guard-glossary summary {
+  color: var(--dash-ink);
+}
+
+.guard-policy-card {
+  color: #f1efe8;
+  background: var(--dash-ink) !important;
+  border-color: var(--dash-ink) !important;
+  box-shadow: 8px 8px 0 var(--dash-lime);
+}
+
+.guard-policy-card [class*="text-slate-"],
+.guard-policy-card [class*="text-[#77786f]"] {
+  color: #a7a79e;
+}
+
+.guard-policy-card [class*="bg-white/"] {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+.guard-policy-card [class*="border-black"],
+.guard-policy-card [class*="border-white"] {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.guard-command-card {
+  background: #faf9f4 !important;
+  border: 1px solid rgba(16, 17, 16, 0.3) !important;
+  box-shadow: 10px 10px 0 rgba(80, 70, 229, 0.12);
+}
+
+.guard-command-input {
+  background:
+    linear-gradient(#ebe8df, #ebe8df) padding-box,
+    repeating-linear-gradient(
+      0deg,
+      transparent 0,
+      transparent 27px,
+      rgba(16, 17, 16, 0.06) 28px
+    );
+}
+
+.dashboard-shell button,
+.dashboard-shell summary {
+  transition:
+    color 0.18s,
+    background-color 0.18s,
+    border-color 0.18s;
+}
+
+@media (max-width: 1023px) {
+  .guard-hero::after {
+    top: -10px;
+    right: -8px;
+  }
+
+  .guard-demo-note {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 820px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .page-pad {
+    padding: 24px 16px 110px !important;
+  }
+
+  .guard-title {
+    font-size: clamp(46px, 14vw, 68px);
+  }
+
+  .guard-hero::after {
+    display: none;
+  }
+
+  .dashboard-wallet {
+    padding: 8px 10px;
+  }
+
+  .dashboard-wallet .mono {
+    display: none;
+  }
+}

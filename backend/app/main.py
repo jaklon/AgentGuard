@@ -1,102 +1,198 @@
-import logging
+from __future__ import annotations
 
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
+import hashlib
+from contextlib import asynccontextmanager
+
+from agentguard_guard import (
+    GuardDecision,
+    GuardService,
+    IntentExtractionError,
+    OpenAIIntentExtractor,
+)
+from fastapi import Depends, FastAPI, HTTPException, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.database import engine
-from app.logging_config import configure_logging
-from app.middleware import RequestLoggingMiddleware
-from app.routers.botchain import router as botchain_router
-from app.routers.guard import router as guard_router
+from .config import get_settings
+from .database import get_db, init_db
+from .logging import configure_logging
+from .middleware import RateLimitMiddleware, RequestContextMiddleware, RequestLimitMiddleware
+from .models import AuditRecord
+from .rpc import BotChainRpc, RpcError
+from .schemas import (
+    ComponentHealth,
+    GuardEvaluateRequest,
+    HealthResponse,
+    SimulateRequest,
+    SimulateResponse,
+    TransactionStatus,
+)
+
+settings = get_settings()
+configure_logging(settings.log_level)
+rpc = BotChainRpc(settings)
+
+primary_extractor = None
+if settings.ai_provider == "openai" and settings.openai_api_key:
+    primary_extractor = OpenAIIntentExtractor(
+        api_key=settings.openai_api_key,
+        model=settings.ai_model,
+        timeout_seconds=settings.model_timeout_seconds,
+    )
+guard = GuardService(primary_extractor=primary_extractor)
 
 
-configure_logging()
-
-logger = logging.getLogger("agentguard.application")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    init_db()
+    yield
 
 
 app = FastAPI(
-    title=settings.app_name,
-    description="Backend safety checkpoint for AI Agent blockchain payments",
-    version=settings.app_version,
+    title="AgentGuard API",
+    version="0.1.0",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
-
-
-app.add_middleware(RequestLoggingMiddleware)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["content-type", "x-request-id"],
 )
+app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.api_rate_limit_per_minute)
+app.add_middleware(RequestLimitMiddleware, max_bytes=settings.max_request_bytes)
+app.add_middleware(RequestContextMiddleware)
 
 
-app.include_router(guard_router)
-app.include_router(botchain_router)
-
-
-@app.get("/api/health")
-def health_check():
-    return {
-        "status": "ok",
-        "service": "agentguard-api",
-    }
-
-
-@app.get("/api/ready")
-def readiness_check():
+@app.post("/api/guard/evaluate", response_model=GuardDecision)
+async def evaluate_guard(
+    payload: GuardEvaluateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> GuardDecision:
     try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+        result = await guard.evaluate(
+            prompt=payload.prompt,
+            policy=payload.policy,
+            manual_intent=payload.manual_intent,
+        )
+    except IntentExtractionError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "INTENT_INVALID", "message": str(exc)},
+        ) from exc
 
-        return {
-            "status": "ready",
-            "service": "agentguard-api",
-            "database": "ok",
-        }
+    prompt_hash = (
+        hashlib.sha256(payload.prompt.encode("utf-8")).hexdigest() if payload.prompt else None
+    )
+    db.add(
+        AuditRecord(
+            request_id=request.state.request_id,
+            wallet=payload.policy.wallet,
+            prompt_hash=prompt_hash,
+            decision=result.decision.value,
+            risk_score=result.risk_score,
+            reason=result.reason,
+            recipient=result.intent.recipient if result.intent else None,
+            amount_bot=format(result.intent.amount_bot, "f") if result.intent else None,
+            chain_id=result.intent.chain_id if result.intent else None,
+            source=result.source,
+        )
+    )
+    db.commit()
+    return result
 
-    except SQLAlchemyError:
-        return {
-            "status": "not_ready",
-            "service": "agentguard-api",
-            "database": "error",
-        }
 
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(
-    request: Request,
-    exc: RequestValidationError,
-):
-    return JSONResponse(
-        status_code=422,
-        content={
-            "detail": "Request validation failed",
-        },
+@app.post("/api/botchain/simulate", response_model=SimulateResponse)
+async def simulate_transaction(payload: SimulateRequest) -> SimulateResponse:
+    try:
+        gas = await rpc.simulate(
+            wallet=payload.wallet,
+            recipient=payload.recipient,
+            amount_bot=payload.amount_bot,
+            intent_hash=payload.intent_hash,
+        )
+    except RpcError as exc:
+        return SimulateResponse(allowed=False, reason=str(exc), estimated_gas=None)
+    return SimulateResponse(
+        allowed=True,
+        reason="Contract simulation succeeded",
+        estimated_gas=gas,
     )
 
 
-@app.exception_handler(Exception)
-async def unexpected_exception_handler(
-    request: Request,
-    exc: Exception,
+@app.get("/api/botchain/policy/{wallet}")
+async def get_policy(
+    wallet: str = Path(pattern=r"^0x[a-fA-F0-9]{40}$"),
 ):
-    logger.exception(
-        "Unhandled exception | method=%s | path=%s",
-        request.method,
-        request.url.path,
+    try:
+        return await rpc.policy(wallet)
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "POLICY_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+
+
+@app.get("/api/botchain/transaction/{transaction_hash}", response_model=TransactionStatus)
+async def get_transaction(
+    transaction_hash: str = Path(pattern=r"^0x[a-fA-F0-9]{64}$"),
+) -> TransactionStatus:
+    try:
+        receipt = await rpc.transaction_receipt(transaction_hash)
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "RPC_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+    if receipt is None:
+        status = "pending"
+        block_number = None
+    else:
+        status = "confirmed" if int(receipt["status"], 16) == 1 else "reverted"
+        block_number = int(receipt["blockNumber"], 16)
+    return TransactionStatus(
+        transaction_hash=transaction_hash,
+        status=status,
+        block_number=block_number,
+        explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{transaction_hash}",
     )
 
-    return JSONResponse(
-        status_code=500,
-        content={
-            "detail": "Internal server error",
-        },
+
+@app.get("/api/health", response_model=HealthResponse)
+async def health(db: Session = Depends(get_db)) -> HealthResponse:
+    try:
+        db.execute(text("SELECT 1"))
+        database = ComponentHealth(status="ok")
+    except Exception:
+        database = ComponentHealth(status="error", detail="database unavailable")
+
+    try:
+        chain_id = await rpc.chain_id()
+        expected = settings.botchain_testnet_chain_id
+        if chain_id == expected:
+            chain = ComponentHealth(status="ok", detail=f"chain_id={chain_id}")
+        else:
+            chain = ComponentHealth(
+                status="error",
+                detail=f"expected chain_id={expected}, received {chain_id}",
+            )
+    except RpcError:
+        chain = ComponentHealth(status="error", detail="RPC unavailable")
+
+    ai = ComponentHealth(
+        status="ok" if primary_extractor else "fallback",
+        detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
+    )
+    overall = "ok" if database.status == "ok" and chain.status == "ok" else "degraded"
+    return HealthResponse(
+        status=overall,
+        app_env=settings.app_env,
+        database=database,
+        ai_provider=ai,
+        botchain_rpc=chain,
     )

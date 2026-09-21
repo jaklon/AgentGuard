@@ -1,0 +1,23 @@
+{$DOMAIN} {
+	encode zstd gzip
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:5173
+		header {
+			Permissions-Policy "camera=(), microphone=(), geolocation=()"
+			Referrer-Policy "no-referrer"
+			X-Content-Type-Options "nosniff"
+			X-Frame-Options "DENY"
+		}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

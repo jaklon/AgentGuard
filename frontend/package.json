@@ -1,0 +1,29 @@
+{
+  "name": "agentguard-frontend",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0 -p 5173",
+    "build": "next build",
+    "start": "node .next/standalone/server.js"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.3",
+    "animejs": "^4.5.0",
+    "framer-motion": "^13.0.0",
+    "gsap": "^3.15.0",
+    "next": "^16.3.5",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

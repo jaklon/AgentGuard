@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentguard-guard"
+version = "0.1.0"
+description = "Provider-agnostic intent extraction and deterministic policy evaluation for AgentGuard"
+requires-python = ">=3.12"
+dependencies = [
+  "openai==1.107.2",
+  "pydantic==2.11.7",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentguard_guard"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
