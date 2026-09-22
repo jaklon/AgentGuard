@@ -1,21 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, connectWallet, ensureBotTestnet, evaluatePayment, executePayment, getPublicConfig, newIntentHash, policyOf, simulatePayment, type GuardDecision, type Policy, type PublicConfig } from "../lib/botchain";
+import { connectWallet, ensureBotTestnet, evaluatePayment, executePayment, getPublicConfig, newIntentHash, policyOf, simulatePayment, transactionOf, type GuardDecision, type Policy, type PublicConfig, type TransactionStatus } from "../lib/botchain";
+import type { EvaluationActivity, TransactionActivity } from "../lib/activity";
 import { loadRecipients, type SavedRecipient } from "../lib/recipients";
 import { Card, CopyBtn, Divider, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp } from "../shared";
 import { motion } from "framer-motion";
 
-type Receipt = { status: "pending" | "confirmed" | "reverted"; explorer_url: string };
-
-export default function LiveDashboardView() {
+export default function LiveDashboardView({ onEvaluation, onTransaction }: { onEvaluation: (activity: EvaluationActivity) => void; onTransaction: (activity: TransactionActivity) => void; }) {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [wallet, setWallet] = useState("");
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [recipients, setRecipients] = useState<SavedRecipient[]>([]);
   const [prompt, setPrompt] = useState("");
   const [decision, setDecision] = useState<GuardDecision | null>(null);
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [receipt, setReceipt] = useState<TransactionStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => { getPublicConfig().then(setConfig).catch((e: Error) => setError(e.message)); }, []);
@@ -32,7 +31,11 @@ export default function LiveDashboardView() {
   }
   async function check() {
     if (!wallet) return setError("Connect a BOT Testnet wallet first."); setBusy(true); setError(""); setDecision(null); setReceipt(null);
-    try { setDecision(await evaluatePayment(wallet, prompt, recipients)); } catch (e) { setError(message(e)); } finally { setBusy(false); }
+    try {
+      const nextDecision = await evaluatePayment(wallet, prompt, recipients);
+      setDecision(nextDecision);
+      onEvaluation({ wallet, decision: nextDecision, policy, recorded_at: nextDecision.evaluated_at || new Date().toISOString() });
+    } catch (e) { setError(message(e)); } finally { setBusy(false); }
   }
   async function approve() {
     if (!config || !wallet || !decision?.intent) return; setBusy(true); setError("");
@@ -41,9 +44,22 @@ export default function LiveDashboardView() {
       const simulation = await simulatePayment(wallet, decision.intent.recipient, decision.intent.amount_bot, intentHash);
       if (!simulation.allowed) throw new Error(simulation.reason);
       const hash = await executePayment(config, decision.intent.recipient, decision.intent.amount_bot, intentHash);
+      const transaction: TransactionActivity = {
+        wallet,
+        transaction_hash: hash,
+        status: "pending",
+        explorer_url: config.explorer_url + "/tx/" + hash,
+        block_number: null,
+        recipient: decision.intent.recipient,
+        amount_bot: decision.intent.amount_bot,
+        purpose: decision.intent.purpose,
+        submitted_at: new Date().toISOString(),
+      };
+      onTransaction(transaction);
       for (let attempt = 0; attempt < 12; attempt += 1) {
-        const latest = await api<Receipt>("/api/botchain/transaction/" + hash);
+        const latest = await transactionOf(hash);
         setReceipt(latest);
+        onTransaction({ ...transaction, status: latest.status, explorer_url: latest.explorer_url, block_number: latest.block_number });
         if (latest.status !== "pending") break;
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }

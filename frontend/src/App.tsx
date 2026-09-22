@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import DashboardView from "./views/LiveDashboardView";
 import ErrorsView from "./views/ErrorsView";
 import LifecycleView from "./views/LifecycleView";
@@ -9,6 +9,7 @@ import PolicyView from "./views/LivePolicyView";
 import RiskView from "./views/RiskView";
 import BoardView from "./views/BoardView";
 import Onboarding from "./components/Onboarding";
+import { EMPTY_ACTIVITY, loadActivity, saveActivity, type ActivityState, type EvaluationActivity, type TransactionActivity } from "./lib/activity";
 import {
   BrandLogo,
   Card,
@@ -64,19 +65,27 @@ const navLabel: Record<Tab, string> = {
 export default function App() {
   const [tab, setTab] = useState<Tab>("Guard"),
     [open, setOpen] = useState(false),
-    [guide, setGuide] = useState(false);
+    [guide, setGuide] = useState(false),
+    [activity, setActivity] = useState<ActivityState>(EMPTY_ACTIVITY);
   useEffect(() => {
     setGuide(localStorage.getItem("agentguard-guide-seen") !== "1");
+    setActivity(loadActivity());
+  }, []);
+  const recordEvaluation = useCallback((evaluation: EvaluationActivity) => {
+    setActivity((current) => { const next = { ...current, evaluation }; saveActivity(next); return next; });
+  }, []);
+  const recordTransaction = useCallback((transaction: TransactionActivity) => {
+    setActivity((current) => { const next = { ...current, transaction }; saveActivity(next); return next; });
   }, []);
 
   const View: Record<Tab, ReactNode> = {
-    Guard: <DashboardView />,
+    Guard: <DashboardView onEvaluation={recordEvaluation} onTransaction={recordTransaction} />,
     Manual: <Manual />,
     Receipt: <Receipt />,
     Errors: <ErrorsView />,
-    Lifecycle: <LifecycleView />,
+    Lifecycle: <LifecycleView evaluation={activity.evaluation} transaction={activity.transaction} onTransaction={recordTransaction} />,
     Policy: <PolicyView />,
-    Risk: <RiskView />,
+    Risk: <RiskView evaluation={activity.evaluation} />,
     Board: <BoardView />,
     Architecture: <Architecture />,
     "UI Kit": <UIKit />,

@@ -1,7 +1,12 @@
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+"use client";
+
+import { motion } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import type { EvaluationActivity, TransactionActivity } from "../lib/activity";
+import { transactionOf } from "../lib/botchain";
 import {
   Card,
+  CopyBtn,
   Icon,
   MBtn,
   Mono,
@@ -10,170 +15,198 @@ import {
   Spinner,
   T,
   fadeUp,
+  short,
   spring,
 } from "../shared";
-export default function LifecycleView() {
-  const [progress, setProgress] = useState(0);
+
+type LifecycleProps = {
+  evaluation: EvaluationActivity | null;
+  transaction: TransactionActivity | null;
+  onTransaction: (activity: TransactionActivity) => void;
+};
+
+export default function LifecycleView({ evaluation, transaction, onTransaction }: LifecycleProps) {
+  const [checking, setChecking] = useState(false);
+  const [error, setError] = useState("");
+
+  const refresh = useCallback(async (showProgress = true) => {
+    if (!transaction || checking) return;
+    if (showProgress) setChecking(true);
+    setError("");
+    try {
+      const latest = await transactionOf(transaction.transaction_hash);
+      if (
+        latest.status !== transaction.status ||
+        latest.block_number !== transaction.block_number ||
+        latest.explorer_url !== transaction.explorer_url
+      ) {
+        onTransaction({
+          ...transaction,
+          status: latest.status,
+          block_number: latest.block_number,
+          explorer_url: latest.explorer_url,
+        });
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to refresh transaction status.");
+    } finally {
+      if (showProgress) setChecking(false);
+    }
+  }, [checking, onTransaction, transaction]);
+
   useEffect(() => {
-    const id = setInterval(() => setProgress((p) => Math.min(100, p + 2)), 200);
-    return () => clearInterval(id);
-  }, []);
-  const confirmed = progress >= 100;
-  const replay = () => setProgress(0);
+    if (!transaction || transaction.status !== "pending") return;
+    let active = true;
+    let running = false;
+    const poll = async () => {
+      if (!active || running) return;
+      running = true;
+      try {
+        const latest = await transactionOf(transaction.transaction_hash);
+        if (active && (
+          latest.status !== transaction.status ||
+          latest.block_number !== transaction.block_number ||
+          latest.explorer_url !== transaction.explorer_url
+        )) {
+          onTransaction({
+            ...transaction,
+            status: latest.status,
+            block_number: latest.block_number,
+            explorer_url: latest.explorer_url,
+          });
+        }
+      } catch (reason) {
+        if (active) setError(reason instanceof Error ? reason.message : "Unable to refresh transaction status.");
+      } finally {
+        running = false;
+      }
+    };
+    void poll();
+    const id = window.setInterval(poll, 3500);
+    return () => {
+      active = false;
+      window.clearInterval(id);
+    };
+  }, [onTransaction, transaction]);
+
+  if (!transaction) return <EmptyLifecycle evaluation={evaluation} />;
+
+  const terminal = transaction.status !== "pending";
+  const confirmed = transaction.status === "confirmed";
+  const included = transaction.block_number !== null || terminal;
+  const statusTone = confirmed ? "ALLOW" : transaction.status === "reverted" ? "BLOCK" : "WARN";
+  const statusLabel = transaction.status.toUpperCase();
+  const steps = [
+    { label: "Submitted", reached: true },
+    { label: "Broadcast", reached: true },
+    { label: "Included", reached: included },
+    { label: confirmed ? "Confirmed" : transaction.status === "reverted" ? "Reverted" : "Finality", reached: terminal },
+  ];
+
   return (
     <motion.div {...fadeUp}>
       <div className="mb-7">
-        <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">
-          Transaction lifecycle
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold">
-          From approval to finality
-        </h1>
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">Live chain receipt</p>
+        <h1 className="mt-2 text-3xl font-semibold">Transaction status</h1>
+        <p className="mt-2 text-sm text-slate-500">Status is read from BOT Testnet and refreshes automatically while pending.</p>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="relative min-h-[500px] overflow-hidden p-5">
-          <div className="blur-[3px] opacity-40">
-            <h3 className="text-lg font-semibold">Transaction preview</h3>
-            <Row label="To" value={<Mono>0x3A9…c76A</Mono>} />
-            <Row label="Amount" value="0.01 BOT" />
-            <div className="mt-6 h-32 rounded-xl bg-white/5" />
-          </div>
-          <div className="absolute inset-0 grid place-items-center bg-[#080b0ce8] p-6 backdrop-blur-sm">
-            <div className="w-full max-w-sm text-center">
-              <div className="relative mx-auto h-24 w-24">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-                  className="absolute inset-1 rounded-full border-2 border-transparent border-t-indigo-400 border-l-indigo-400"
-                />
-                <motion.div
-                  animate={{ rotate: -360 }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                  className="absolute inset-4 rounded-full border-2 border-transparent border-b-cyan-400 border-r-cyan-400"
-                />
-                <div className="absolute inset-0 grid place-items-center text-indigo-400">
-                  <Icon name="wallet" size={25} />
-                </div>
-              </div>
-              <h2 className="mt-4 text-xl font-semibold">
-                Awaiting MetaMask Approval…
-              </h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Review and approve the request in your wallet.
-              </p>
-              <div className="my-5 rounded-xl border border-white/[.08] bg-white/[.035] p-4 text-left">
-                <Row label="Recipient" value={<Mono>0x3A9…c76A</Mono>} />
-                <Row label="Amount" value="0.01 BOT" />
-                <Row label="Network" value="BOT Testnet" />
-                <Row label="Guard" value={<Pill status="ALLOW" />} />
-              </div>
-              <MBtn variant="secondary">Cancel request</MBtn>
-            </div>
-          </div>
-        </Card>
+      {error && <div className="mb-5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-300">{error}</div>}
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
         <Card className="p-5 md:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <span className="text-xs text-slate-500">Network status</span>
-              <div className="mt-2">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={String(confirmed)}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.8, opacity: 0 }}
-                    transition={spring}
-                  >
-                    <Pill status={confirmed ? "CONFIRMED" : "BROADCASTING"} />
-                  </motion.div>
-                </AnimatePresence>
-              </div>
+              <p className="text-xs text-slate-500">Network status</p>
+              <div className="mt-2"><Pill status={statusTone} label={statusLabel} /></div>
             </div>
-            <button
-              onClick={replay}
-              className="text-xs text-slate-400 hover:text-white"
-            >
-              ↺ Replay
-            </button>
+            <MBtn variant="secondary" onClick={() => void refresh()} disabled={checking} className="px-3 py-2 text-xs">
+              {checking ? <Spinner /> : <span aria-hidden="true">↻</span>}
+              Refresh
+            </MBtn>
           </div>
-          <div className="mt-8 h-2 overflow-hidden rounded-full bg-white/5">
-            <motion.div
-              animate={{
-                width: `${progress}%`,
-                backgroundColor: confirmed ? T.allow : T.blue,
-              }}
-              className="h-full rounded-full"
-            />
-          </div>
-          <div className="mt-7 flex justify-between">
-            {["Submitted", "Propagated", "Included", "Finalized"].map(
-              (x, i) => {
-                const reached = progress >= i * 33;
-                return (
-                  <div key={x} className="flex flex-col items-center gap-2">
-                    <motion.div
-                      animate={{
-                        scale: reached ? 1 : 0.75,
-                        backgroundColor: reached
-                          ? confirmed && i === 3
-                            ? T.allow
-                            : T.blue
-                          : "#26344a",
-                      }}
-                      transition={spring}
-                      className="grid h-8 w-8 place-items-center rounded-full text-xs"
-                    >
-                      {reached ? <Icon name="check" size={14} /> : i + 1}
-                    </motion.div>
-                    <span
-                      className={`text-[10px] ${reached ? "text-slate-300" : "text-slate-600"}`}
-                    >
-                      {x}
-                    </span>
-                  </div>
-                );
-              },
-            )}
-          </div>
-          <div className="mt-8 rounded-xl bg-[#0a101c] p-4">
-            <Row
-              label="Tx hash"
-              value={
-                <span className="flex items-center gap-2">
-                  <Mono>0x8f2a…91c4</Mono>
-                  {confirmed ? <Icon name="check" size={15} /> : <Spinner />}
-                </span>
-              }
-            />
-          </div>
-          <div className="my-5 grid grid-cols-2 gap-3">
-            {[
-              ["Block", confirmed ? "1,942,816" : "Pending"],
-              ["Gas", "21,438"],
-              ["Network", "BOT Testnet"],
-              ["Time", confirmed ? "9.8s" : "—"],
-            ].map(([a, b]) => (
-              <div key={a} className="rounded-xl bg-white/[.035] p-3">
-                <p className="text-[11px] text-slate-500">{a}</p>
-                <p className="mt-1 text-sm font-semibold">{b}</p>
+
+          <div className="mt-8 flex justify-between">
+            {steps.map((step, index) => (
+              <div key={step.label} className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+                <motion.div
+                  animate={{
+                    scale: step.reached ? 1 : 0.78,
+                    backgroundColor: step.reached
+                      ? transaction.status === "reverted" && index === 3 ? T.block : confirmed && index === 3 ? T.allow : T.blue
+                      : "#26344a",
+                  }}
+                  transition={spring}
+                  className="grid h-8 w-8 place-items-center rounded-full text-xs text-[#080b0c]"
+                >
+                  {step.reached ? <Icon name={transaction.status === "reverted" && index === 3 ? "x" : "check"} size={14} /> : index + 1}
+                </motion.div>
+                <span className={`text-[10px] ${step.reached ? "text-slate-300" : "text-slate-600"}`}>{step.label}</span>
               </div>
             ))}
           </div>
-          <MBtn variant={confirmed ? "approve" : "primary"} className="w-full">
-            {confirmed ? (
-              <>
-                <Icon name="check" />
-                View confirmed receipt
-              </>
-            ) : (
-              <>
-                <Spinner />
-                Broadcasting transaction
-              </>
-            )}
-          </MBtn>
+
+          <div className="mt-8 rounded-xl bg-[#0a101c] p-4">
+            <Row
+              label="Tx hash"
+              value={<span className="flex items-center gap-1"><Mono>{short(transaction.transaction_hash)}</Mono><CopyBtn text={transaction.transaction_hash} /></span>}
+            />
+            <Row label="Block" value={transaction.block_number === null ? "Pending" : <Mono>{transaction.block_number.toLocaleString()}</Mono>} />
+            <Row label="Network" value="BOT Testnet · 968" />
+            <Row label="Submitted" value={formatTime(transaction.submitted_at)} />
+          </div>
+          {transaction.status === "pending" && <p className="mt-4 flex items-center gap-2 text-xs text-slate-500"><Spinner /> Waiting for a BOT Testnet receipt. You may leave this page; tracking will continue when you return.</p>}
+        </Card>
+
+        <Card className="p-5 md:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="font-semibold">Payment receipt</h2>
+            {evaluation && evaluation.wallet.toLowerCase() === transaction.wallet.toLowerCase() && <Pill status={evaluation.decision.decision} label={`GUARD ${evaluation.decision.decision}`} />}
+          </div>
+          <div className="mt-5">
+            <Row label="Wallet" value={<Mono>{short(transaction.wallet)}</Mono>} />
+            <Row label="Recipient" value={<span className="flex items-center gap-1"><Mono>{short(transaction.recipient)}</Mono><CopyBtn text={transaction.recipient} /></span>} />
+            <Row label="Amount" value={<Mono>{transaction.amount_bot} BOT</Mono>} />
+            <Row label="Purpose" value={transaction.purpose || "Not supplied"} />
+          </div>
+          <a
+            href={transaction.explorer_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#d6c38c] px-4 py-3 text-sm font-semibold text-[#090c0d] transition-colors hover:bg-[#ead9a4]"
+          >
+            Open receipt on BOTScan
+            <Icon name="arrow" size={16} />
+          </a>
+          <p className="mt-3 text-center text-[11px] leading-5 text-slate-500">The explorer is the source of truth for final on-chain status.</p>
         </Card>
       </div>
     </motion.div>
   );
+}
+
+function EmptyLifecycle({ evaluation }: { evaluation: EvaluationActivity | null }) {
+  return (
+    <motion.div {...fadeUp}>
+      <div className="mb-7">
+        <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">Live chain receipt</p>
+        <h1 className="mt-2 text-3xl font-semibold">Transaction status</h1>
+      </div>
+      <Card className="grid min-h-72 place-items-center p-8 text-center">
+        <div>
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-indigo-500/10 text-indigo-300"><Icon name="wallet" size={24} /></div>
+          <h2 className="mt-4 text-lg font-semibold">No transaction submitted yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+            {evaluation
+              ? `The latest payment was evaluated as ${evaluation.decision.decision}, but no wallet transaction has been recorded. Return to Check Payment to approve it.`
+              : "Evaluate a payment in Check Payment, then approve it in your wallet. Its real transaction hash and confirmation status will appear here."}
+          </p>
+          {evaluation && <div className="mt-4"><Pill status={evaluation.decision.decision} label={`LATEST CHECK · ${evaluation.decision.decision}`} /></div>}
+        </div>
+      </Card>
+    </motion.div>
+  );
+}
+
+function formatTime(value: string): string {
+  const time = new Date(value);
+  return Number.isNaN(time.getTime()) ? "Unknown" : time.toLocaleString();
 }
