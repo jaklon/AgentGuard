@@ -25,7 +25,7 @@ This repository implements the baseline from `AgentGuard_Implementation_Plan.doc
 - Payment links contain recipient, amount, and purpose only; every request is re-evaluated and signed by the payer.
 - Gas sponsorship is reported unavailable until both a funded AgentGuard paymaster and the
   ERC-4337 UserOperation submission path are implemented.
-- `NEXT_PUBLIC_*` values are public by definition and must never contain credentials.
+- `NEXT_PUBLIC_*` values are public by definition and must never contain secrets. The WalletConnect Project ID is supplied at build time and protected with Reown origin allowlisting.
 
 ## Local setup
 
@@ -43,7 +43,7 @@ In a second terminal:
 make frontend-dev
 ```
 
-The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. The frontend uses an injected EVM wallet, BOT Testnet only, and the same API/contract configuration used in production. It never handles a private key.
+The app opens at `http://localhost:5173`; the API is at `http://localhost:8000`. The frontend supports an injected EVM wallet, WalletConnect QR, and a MetaMask Mobile deep link on BOT Testnet only. It never handles a private key.
 
 ### Frontend-only preview
 
@@ -86,7 +86,7 @@ Copy the resulting address into `BOTCHAIN_CONTRACT_ADDRESS` for the API and run 
 
 ## Production
 
-Set `DOMAIN`, origins, and contract address in `/srv/agentguard/.env`. For local Qwen,
+Set `DOMAIN`, origins, contract address, and `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` in `/srv/agentguard/.env`. Create the Project ID in Reown Cloud and allowlist the exact production and development origins before building. For local Qwen,
 place the verified `Qwen3-4B-Instruct-2507-Q4_K_M.gguf` file in `/srv/agentguard/models/`; see
 [operations](docs/operations.md). Then:
 

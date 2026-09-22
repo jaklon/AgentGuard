@@ -17,14 +17,17 @@ import {
   readinessOf,
   simulatePayment,
   transactionOf,
+  type Eip1193Provider,
   type GuardDecision,
   type PaymentHistory,
   type Policy,
   type PublicConfig,
   type SimulationPreview,
   type TransactionStatus,
+  type WalletConnectionMode,
   type WalletReadiness,
 } from "../lib/botchain";
+import { WalletConnectionButtons } from "../components/WalletConnectionButtons";
 import { enableNotifications, notificationsEnabled, notifyTransaction } from "../lib/notifications";
 import { loadRecipients, type SavedRecipient } from "../lib/recipients";
 import { loadTemplates, removeTemplate, saveTemplate, type PaymentTemplate } from "../lib/templates";
@@ -41,6 +44,7 @@ export default function LiveDashboardView({
 }) {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [wallet, setWallet] = useState("");
+  const [walletProvider, setWalletProvider] = useState<Eip1193Provider | null>(null);
   const [policy, setPolicy] = useState<Policy | null>(null);
   const [readiness, setReadiness] = useState<WalletReadiness | null>(null);
   const [history, setHistory] = useState<PaymentHistory | null>(null);
@@ -75,7 +79,7 @@ export default function LiveDashboardView({
   }, []);
 
   useEffect(() => {
-    if (!config || !window.ethereum) return;
+    if (!config || !walletProvider) return;
     const accounts = (value: unknown) => {
       const account = (value as string[])[0] || "";
       selectedWallet.current = account;
@@ -86,14 +90,14 @@ export default function LiveDashboardView({
         setError(reason.message);
       });
     };
-    const chain = () => ensureBotTestnet(config).catch((reason: Error) => setError(reason.message));
-    window.ethereum.on?.("accountsChanged", accounts);
-    window.ethereum.on?.("chainChanged", chain);
+    const chain = () => ensureBotTestnet(config, walletProvider).catch((reason: Error) => setError(reason.message));
+    walletProvider.on?.("accountsChanged", accounts);
+    walletProvider.on?.("chainChanged", chain);
     return () => {
-      window.ethereum?.removeListener?.("accountsChanged", accounts);
-      window.ethereum?.removeListener?.("chainChanged", chain);
+      walletProvider.removeListener?.("accountsChanged", accounts);
+      walletProvider.removeListener?.("chainChanged", chain);
     };
-  }, [config]);
+  }, [config, walletProvider]);
 
   useEffect(() => {
     if (!receipt || receipt.status === "pending") return;
@@ -128,16 +132,17 @@ export default function LiveDashboardView({
     setTemplates(loadTemplates(account));
   }
 
-  async function connect() {
+  async function connect(mode: WalletConnectionMode) {
     if (!config) return;
     setBusy("connect"); setError("");
     try {
-      const account = await connectWallet(config);
-      selectedWallet.current = account;
-      setWallet(account);
+      const connection = await connectWallet(config, mode);
+      selectedWallet.current = connection.account;
+      setWallet(connection.account);
+      setWalletProvider(connection.provider);
       invalidatePaymentState();
       clearWalletData();
-      await refreshWallet(account);
+      await refreshWallet(connection.account);
     } catch (reason) {
       setError(message(reason)); clearWalletData();
     } finally {
@@ -169,18 +174,18 @@ export default function LiveDashboardView({
   }
 
   async function approve() {
-    if (!config || !wallet || !decision?.intent || !preview?.allowed || !intentHash) return;
+    if (!config || !walletProvider || !wallet || !decision?.intent || !preview?.allowed || !intentHash) return;
     const account = wallet;
     const version = evaluationVersion.current;
     setBusy("approve"); setError("");
     try {
-      await ensureBotTestnet(config);
+      await ensureBotTestnet(config, walletProvider);
       if (version !== evaluationVersion.current || selectedWallet.current.toLowerCase() !== account.toLowerCase()) throw new Error("Wallet or payment details changed. Run the safety check again.");
       const simulation = await simulatePayment(account, decision.intent.recipient, decision.intent.amount_bot, intentHash);
       setPreview(simulation);
       if (!simulation.allowed) throw new Error(simulation.reason);
       if (version !== evaluationVersion.current || selectedWallet.current.toLowerCase() !== account.toLowerCase()) throw new Error("Wallet or payment details changed. Run the safety check again.");
-      const hash = await executePayment(config, account, decision.intent.recipient, decision.intent.amount_bot, intentHash);
+      const hash = await executePayment(config, walletProvider, account, decision.intent.recipient, decision.intent.amount_bot, intentHash);
       const transaction: TransactionActivity = {
         wallet: account,
         transaction_hash: hash,
@@ -265,9 +270,7 @@ export default function LiveDashboardView({
       <Card className="h-fit p-6">
         <p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Payment readiness</p>
         <h2 className="mt-2 text-lg font-semibold">{wallet ? short(wallet) : "Wallet not connected"}</h2>
-        <MBtn className="mt-5 w-full" onClick={connect} disabled={!config || Boolean(busy)}>
-          {busy === "connect" ? <><Spinner />Connecting…</> : <><Icon name="wallet" />{wallet ? "Reconnect wallet" : "Connect MetaMask"}</>}
-        </MBtn>
+        <WalletConnectionButtons onConnect={connect} busy={!config || Boolean(busy)} connected={Boolean(wallet)} className="mt-5" />
         {wallet && <div className="mt-5 space-y-2">
           <ReadinessItem label="Wallet connected" ready />
           <ReadinessItem label="BOT Testnet · 968" ready={readiness?.chain_id === 968} />

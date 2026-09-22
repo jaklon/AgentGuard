@@ -18,7 +18,7 @@ OS patching, OCI firewall rules, DNS, spending alerts, teammate SSH keys, and Gi
     cp .env.example .env
     chmod 600 .env
 
-Set the real domain, exact HTTPS origin, and contract address. Keep testnet chain 968 until the release gate explicitly approves mainnet.
+Set the real domain, exact HTTPS origin, contract address, and `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`. In Reown Cloud, allowlist the exact HTTPS production origin (and only the development origins that are actually needed). The Project ID is injected during the frontend build, so rebuild the frontend after changing it. Keep testnet chain 968 until the release gate explicitly approves mainnet.
 
 ## Local Qwen inference
 

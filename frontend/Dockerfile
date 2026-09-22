@@ -1,5 +1,8 @@
 FROM node:24.15.0-alpine AS build
 
+ARG NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=""
+ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=$NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci

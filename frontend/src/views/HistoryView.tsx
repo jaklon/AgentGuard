@@ -3,9 +3,10 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import type { TransactionActivity } from "../lib/activity";
-import { connectWallet, getPublicConfig, historyOf, type PaymentHistory, type PaymentHistoryItem, type PublicConfig } from "../lib/botchain";
+import { connectWallet, getPublicConfig, historyOf, type PaymentHistory, type PaymentHistoryItem, type PublicConfig, type WalletConnectionMode } from "../lib/botchain";
 import { loadRecipients } from "../lib/recipients";
-import { Card, CopyBtn, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp, short } from "../shared";
+import { WalletConnectionButtons } from "../components/WalletConnectionButtons";
+import { Card, CopyBtn, Icon, MBtn, Mono, Pill, Row, fadeUp, short } from "../shared";
 
 export default function HistoryView({ latest }: { latest: TransactionActivity | null }) {
   const [config, setConfig] = useState<PublicConfig | null>(null);
@@ -22,11 +23,11 @@ export default function HistoryView({ latest }: { latest: TransactionActivity | 
     setNames(Object.fromEntries(loadRecipients(account, next.recipient_summaries.map((item) => item.recipient)).map((item) => [item.address.toLowerCase(), item.name])));
   }
 
-  async function connect() {
+  async function connect(mode: WalletConnectionMode) {
     if (!config) return;
     setBusy(true); setError("");
     try {
-      const account = await connectWallet(config);
+      const { account } = await connectWallet(config, mode);
       setWallet(account);
       await refresh(account);
     } catch (reason) { setError(message(reason)); }
@@ -52,7 +53,7 @@ export default function HistoryView({ latest }: { latest: TransactionActivity | 
       {history && <div className="flex gap-2"><MBtn variant="secondary" onClick={() => void refresh(wallet)} disabled={busy}>Refresh</MBtn><MBtn variant="secondary" onClick={exportCsv}>Export CSV</MBtn></div>}
     </div>
     {error && <p className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">{error}</p>}
-    {!history ? <Card className="grid min-h-72 place-items-center p-8 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-indigo-500/10 text-indigo-300"><Icon name="wallet" size={24} /></div><h2 className="mt-4 text-lg font-semibold">Connect your wallet to load receipts</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No account login is required. History is read from public BOT Testnet events for the connected wallet.</p><MBtn onClick={connect} disabled={!config || busy} className="mt-5">{busy ? <><Spinner />Loading…</> : <><Icon name="wallet" />Connect MetaMask</>}</MBtn></div></Card> : <>
+    {!history ? <Card className="grid min-h-72 place-items-center p-8 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-indigo-500/10 text-indigo-300"><Icon name="wallet" size={24} /></div><h2 className="mt-4 text-lg font-semibold">Connect your wallet to load receipts</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">No account login is required. History is read from public BOT Testnet events for the connected wallet.</p><WalletConnectionButtons onConnect={connect} busy={!config || busy} busyLabel="Loading…" className="mx-auto mt-5 max-w-xs" /></div></Card> : <>
       <div className="mb-6 grid gap-3 sm:grid-cols-3"><Stat label="Confirmed payments" value={String(history.total_count)} /><Stat label="Total sent" value={`${history.total_spent_bot} BOT`} /><Stat label="Recipients" value={String(history.recipient_summaries.length)} /></div>
       {history.total_count > history.items.length && <p className="mb-4 text-xs text-slate-500">Showing the latest {history.items.length} receipts. Totals above include all {history.total_count} confirmed payments.</p>}
       {history.items.length === 0 ? <Card className="p-8 text-center"><h2 className="font-semibold">No AgentGuard payments yet</h2><p className="mt-2 text-sm text-slate-500">Payments will appear after the contract emits PaymentExecuted.</p></Card> : <div className="space-y-3">{history.items.map((item) => <ReceiptCard key={item.transaction_hash} item={item} name={names[item.recipient.toLowerCase()]} purpose={latest?.transaction_hash.toLowerCase() === item.transaction_hash.toLowerCase() ? latest.purpose : ""} />)}</div>}

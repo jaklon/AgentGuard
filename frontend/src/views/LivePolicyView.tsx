@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { connectWallet, getPublicConfig, policyOf, setPolicy, setRecipient, setWalletPaused, type Policy, type PublicConfig } from "../lib/botchain";
+import { connectWallet, getPublicConfig, policyOf, setPolicy, setRecipient, setWalletPaused, type Eip1193Provider, type Policy, type PublicConfig, type WalletConnectionMode } from "../lib/botchain";
 import { loadRecipients, removeRecipient, saveRecipient } from "../lib/recipients";
-import { Card, Divider, Icon, Label, MBtn, Mono, Row, Spinner, fadeUp, short } from "../shared";
+import { WalletConnectionButtons } from "../components/WalletConnectionButtons";
+import { Card, Divider, Label, MBtn, Mono, Row, fadeUp, short } from "../shared";
 import { motion } from "framer-motion";
 
 export default function LivePolicyView() {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [wallet, setWallet] = useState("");
+  const [walletProvider, setWalletProvider] = useState<Eip1193Provider | null>(null);
   const [policy, setPolicyState] = useState<Policy | null>(null);
   const [perTx, setPerTx] = useState("0.02");
   const [daily, setDaily] = useState("0.10");
@@ -27,27 +29,27 @@ export default function LivePolicyView() {
     setNames(Object.fromEntries(loadRecipients(account, nextPolicy.allowed_recipients).map((item) => [item.address.toLowerCase(), item.name])));
   }
 
-  async function connect() {
+  async function connect(mode: WalletConnectionMode) {
     if (!config) return;
     setBusy(true); setError("");
-    try { const account = await connectWallet(config); setWallet(account); await refresh(account); }
+    try { const connection = await connectWallet(config, mode); setWallet(connection.account); setWalletProvider(connection.provider); await refresh(connection.account); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
 
   async function savePolicy() {
-    if (!config || !wallet) return;
+    if (!config || !wallet || !walletProvider) return;
     setBusy(true); setError("");
-    try { const expires = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; setTransaction(await setPolicy(config, perTx, daily, expires, true)); await refresh(wallet); }
+    try { const expires = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; setTransaction(await setPolicy(config, walletProvider, perTx, daily, expires, true)); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
 
   async function addRecipient() {
-    if (!config || !wallet || !recipient || !recipientName.trim()) return;
+    if (!config || !wallet || !walletProvider || !recipient || !recipientName.trim()) return;
     setBusy(true); setError("");
     try {
-      setTransaction(await setRecipient(config, recipient, true));
+      setTransaction(await setRecipient(config, walletProvider, recipient, true));
       saveRecipient(wallet, { name: recipientName, address: recipient });
       setRecipientInput(""); setRecipientName("");
       await refresh(wallet);
@@ -56,9 +58,9 @@ export default function LivePolicyView() {
   }
 
   async function removeAllowedRecipient(address: string) {
-    if (!config || !wallet) return;
+    if (!config || !wallet || !walletProvider) return;
     setBusy(true); setError("");
-    try { setTransaction(await setRecipient(config, address, false)); removeRecipient(wallet, address); await refresh(wallet); }
+    try { setTransaction(await setRecipient(config, walletProvider, address, false)); removeRecipient(wallet, address); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -72,9 +74,9 @@ export default function LivePolicyView() {
   }
 
   async function togglePause() {
-    if (!config || !wallet || !policy) return;
+    if (!config || !wallet || !walletProvider || !policy) return;
     setBusy(true); setError("");
-    try { setTransaction(await setWalletPaused(config, !policy.paused)); await refresh(wallet); }
+    try { setTransaction(await setWalletPaused(config, walletProvider, !policy.paused)); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -84,7 +86,7 @@ export default function LivePolicyView() {
     {error && <p className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">{error}</p>}
     <div className="grid gap-6 lg:grid-cols-[1fr_310px]">
       <Card className="p-6">
-        <MBtn onClick={connect} disabled={!config || busy} className="w-full">{busy ? <><Spinner />Working…</> : <><Icon name="wallet" />{wallet ? "Reconnect wallet" : "Connect MetaMask"}</>}</MBtn>
+        <WalletConnectionButtons onConnect={connect} busy={!config || busy} connected={Boolean(wallet)} busyLabel="Working…" />
         <Divider />
         <div className="grid gap-4 sm:grid-cols-2"><div><Label>Per-transaction limit</Label><input value={perTx} onChange={(e) => setPerTx(e.target.value)} className="input mono" inputMode="decimal" /></div><div><Label>Daily limit</Label><input value={daily} onChange={(e) => setDaily(e.target.value)} className="input mono" inputMode="decimal" /></div></div>
         <MBtn onClick={savePolicy} disabled={!wallet || busy} className="mt-5 w-full">Write policy to BOT Testnet</MBtn>

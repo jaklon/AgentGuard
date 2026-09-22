@@ -4,9 +4,10 @@ import { motion } from "framer-motion";
 import { parseUnits } from "ethers";
 import { useEffect, useState } from "react";
 import { formatBotWei } from "../lib/amount";
-import { connectWallet, getPublicConfig, historyOf, policyOf, readinessOf, type PaymentHistory, type Policy, type PublicConfig, type WalletReadiness } from "../lib/botchain";
+import { connectWallet, getPublicConfig, historyOf, policyOf, readinessOf, type PaymentHistory, type Policy, type PublicConfig, type WalletConnectionMode, type WalletReadiness } from "../lib/botchain";
 import { loadRecipients } from "../lib/recipients";
-import { Card, Icon, MBtn, Mono, Pill, Spinner, fadeUp } from "../shared";
+import { WalletConnectionButtons } from "../components/WalletConnectionButtons";
+import { Card, Icon, MBtn, Mono, Pill, fadeUp } from "../shared";
 
 type Message = { role: "user" | "assistant"; text: string };
 
@@ -30,11 +31,11 @@ export default function AssistantView() {
   const [error, setError] = useState("");
   useEffect(() => { getPublicConfig().then(setConfig).catch((reason: Error) => setError(reason.message)); }, []);
 
-  async function connect() {
+  async function connect(mode: WalletConnectionMode) {
     if (!config) return;
     setBusy(true); setError("");
     try {
-      const account = await connectWallet(config);
+      const { account } = await connectWallet(config, mode);
       const [nextHistory, nextPolicy, nextReadiness] = await Promise.all([historyOf(account), policyOf(account), readinessOf(account)]);
       setWallet(account); setHistory(nextHistory); setPolicy(nextPolicy); setReadiness(nextReadiness);
       setNames(Object.fromEntries(loadRecipients(account, nextHistory.recipient_summaries.map((item) => item.recipient)).map((item) => [item.address.toLowerCase(), item.name])));
@@ -53,7 +54,7 @@ export default function AssistantView() {
 
   return <motion.div {...fadeUp}>
     <div className="mb-7"><p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">Private on-chain insights</p><h1 className="mt-2 text-3xl font-semibold">AI spending assistant</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Ask questions in Indonesian or English. Answers are calculated from live contract history and policy limits, not invented balances.</p></div>
-    {!history || !policy || !readiness ? <Card className="grid min-h-72 place-items-center p-8 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-indigo-500/10 text-indigo-300"><Icon name="shield" size={24} /></div><h2 className="mt-4 text-lg font-semibold">Connect your wallet for verified answers</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">The assistant reads only public on-chain activity and your active AgentGuard policy.</p><MBtn onClick={connect} disabled={!config || busy} className="mt-5">{busy ? <><Spinner />Reading on-chain data…</> : <><Icon name="wallet" />Connect MetaMask</>}</MBtn>{error && <p className="mt-3 text-xs text-rose-300">{error}</p>}</div></Card> : <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+    {!history || !policy || !readiness ? <Card className="grid min-h-72 place-items-center p-8 text-center"><div><div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-indigo-500/10 text-indigo-300"><Icon name="shield" size={24} /></div><h2 className="mt-4 text-lg font-semibold">Connect your wallet for verified answers</h2><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">The assistant reads only public on-chain activity and your active AgentGuard policy.</p><WalletConnectionButtons onConnect={connect} busy={!config || busy} busyLabel="Reading on-chain data…" className="mx-auto mt-5 max-w-xs" />{error && <p className="mt-3 text-xs text-rose-300">{error}</p>}</div></Card> : <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
       <Card className="flex min-h-[570px] flex-col p-5 md:p-6">
         <div className="flex items-center justify-between border-b border-white/[.08] pb-4"><div><h2 className="font-semibold">Spending conversation</h2><p className="mt-1 text-xs text-slate-500"><Mono>{wallet.slice(0, 8)}…{wallet.slice(-4)}</Mono></p></div><Pill status="ALLOW" label="LIVE DATA" /></div>
         <div className="flex-1 space-y-3 py-5">{messages.map((message, index) => <div key={`${message.role}-${index}`} className={`max-w-[86%] rounded-xl px-4 py-3 text-sm leading-6 ${message.role === "user" ? "ml-auto bg-indigo-500/15 text-indigo-100" : "bg-white/[.05] text-slate-300"}`}>{message.text}</div>)}</div>
