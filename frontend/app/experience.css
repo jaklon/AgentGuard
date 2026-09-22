@@ -677,25 +677,30 @@ html {
   color: var(--void);
   font-weight: 900;
 }
+.login-orbit-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+.login-orbit-track.orbit-c {
+  inset: 19px;
+}
 .login-orbit-dot {
   position: absolute;
+  top: -4px;
+  left: 50%;
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: #fff;
-}
-.dot-a {
-  top: -4px;
-  left: 56px;
+  transform: translateX(-50%);
 }
 .dot-b {
-  right: 8px;
-  bottom: 12px;
   background: var(--cobalt);
 }
 .dot-c {
-  left: 5px;
-  bottom: 20px;
   background: #f06a47;
 }
 .login-panel-copy > span {
