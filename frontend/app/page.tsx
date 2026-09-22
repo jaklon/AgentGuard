@@ -307,7 +307,7 @@ export default function IntroductionPage() {
       </section>
       <footer className="intro-footer">
         <span>© 2026 AgentGuard</span>
-        <span>BOT Chain Testnet · Human approval required</span>
+        <span>BOT Chain Testnet · Human approval required · <a href="/legal/reown-community-license.txt" target="_blank" rel="noreferrer">Reown notice</a></span>
       </footer>
     </main>
   );

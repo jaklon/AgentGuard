@@ -4,6 +4,8 @@ AgentGuard is a human-in-the-loop safety checkpoint for BOT Chain payments. It t
 
 This repository implements the baseline from `AgentGuard_Implementation_Plan.docx` for the BOT Chain Build Week Hackathon Vol. 2.
 
+Portions © 2025 Reown, Inc. All Rights Reserved. See the bundled [Reown Community License](frontend/public/legal/reown-community-license.txt).
+
 ## Repository map
 
 | Path | Owner | Purpose |

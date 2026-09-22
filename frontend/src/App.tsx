@@ -213,7 +213,7 @@ export default function App() {
       </main>
       <footer className="dashboard-footer mx-auto hidden max-w-[1320px] justify-between px-10 py-8 text-[10px] lg:flex">
         <span>AgentGuard · BOT Testnet</span>
-        <span>Wallet signatures stay in MetaMask</span>
+        <span>Wallet signatures stay in your selected wallet · <a href="/legal/reown-community-license.txt" target="_blank" rel="noreferrer" className="underline">Reown notice</a></span>
       </footer>
       <nav className="dashboard-mobile-nav fixed inset-x-0 bottom-0 z-50 px-2 py-2 backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
