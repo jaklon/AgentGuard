@@ -8,8 +8,11 @@ import LifecycleView from "./views/LifecycleView";
 import PolicyView from "./views/LivePolicyView";
 import RiskView from "./views/RiskView";
 import BoardView from "./views/BoardView";
+import AssistantView from "./views/AssistantView";
+import HistoryView from "./views/HistoryView";
+import PaymentRequestView from "./views/PaymentRequestView";
 import Onboarding from "./components/Onboarding";
-import { EMPTY_ACTIVITY, loadActivity, saveActivity, type ActivityState, type EvaluationActivity, type TransactionActivity } from "./lib/activity";
+import { EMPTY_ACTIVITY, clearActivity, loadActivity, saveActivity, type ActivityState, type EvaluationActivity, type TransactionActivity } from "./lib/activity";
 import {
   BrandLogo,
   Card,
@@ -30,6 +33,9 @@ import {
 } from "./shared";
 type Tab =
   | "Guard"
+  | "Request"
+  | "History"
+  | "Assistant"
   | "Manual"
   | "Receipt"
   | "Errors"
@@ -40,11 +46,12 @@ type Tab =
   | "Architecture"
   | "UI Kit";
 const navGroups: { label: string; items: Tab[] }[] = [
-  { label: "Payments", items: ["Guard"] },
+  { label: "Payments", items: ["Guard", "Request", "History", "Assistant"] },
   { label: "Security", items: ["Policy", "Risk", "Lifecycle", "Errors"] },
 ];
-const mobileMain: Tab[] = ["Guard"];
+const mobileMain: Tab[] = ["Guard", "Request", "History"];
 const mobileMore: Tab[] = [
+  "Assistant",
   "Policy",
   "Risk",
   "Lifecycle",
@@ -52,6 +59,9 @@ const mobileMore: Tab[] = [
 ];
 const navLabel: Record<Tab, string> = {
   Guard: "Check Payment",
+  Request: "Pay by Link",
+  History: "History",
+  Assistant: "AI Assistant",
   Manual: "Manual Payment",
   Receipt: "Receipt",
   Errors: "Help",
@@ -77,9 +87,16 @@ export default function App() {
   const recordTransaction = useCallback((transaction: TransactionActivity) => {
     setActivity((current) => { const next = { ...current, transaction }; saveActivity(next); return next; });
   }, []);
+  const clearLocalActivity = useCallback(() => {
+    clearActivity();
+    setActivity(EMPTY_ACTIVITY);
+  }, []);
 
   const View: Record<Tab, ReactNode> = {
     Guard: <DashboardView onEvaluation={recordEvaluation} onTransaction={recordTransaction} />,
+    Request: <PaymentRequestView />,
+    History: <HistoryView latest={activity.transaction} />,
+    Assistant: <AssistantView />,
     Manual: <Manual />,
     Receipt: <Receipt />,
     Errors: <ErrorsView />,
@@ -145,6 +162,7 @@ export default function App() {
           >
             ? Open guide
           </button>
+          {(activity.evaluation || activity.transaction) && <button onClick={clearLocalActivity} className="mt-2 w-full rounded-lg px-3 py-2 text-left text-[11px] text-slate-600 hover:bg-white/[.03] hover:text-rose-300">Clear local activity</button>}
         </div>
       </aside>
 
@@ -260,6 +278,7 @@ export default function App() {
               >
                 ? Open quick guide
               </button>
+              {(activity.evaluation || activity.transaction) && <button onClick={() => { clearLocalActivity(); setOpen(false); }} className="mt-2 w-full rounded-lg px-3 py-3 text-left text-xs text-rose-300">Clear local activity</button>}
             </motion.div>
           </motion.div>
         )}

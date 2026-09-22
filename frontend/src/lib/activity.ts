@@ -45,6 +45,10 @@ export function saveActivity(value: ActivityState): void {
   try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(value)); } catch { /* Storage can be unavailable in privacy mode. */ }
 }
 
+export function clearActivity(): void {
+  if (typeof window !== "undefined") window.localStorage.removeItem(STORAGE_KEY);
+}
+
 function validEvaluation(value: unknown): value is EvaluationActivity {
   if (!value || typeof value !== "object") return false;
   const item = value as EvaluationActivity;

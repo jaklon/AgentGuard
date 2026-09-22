@@ -50,18 +50,18 @@ export default function Onboarding({
                 {[
                   [
                     "1",
-                    "AI requests a payment",
-                    "Example: “Pay 0.01 BOT to Alice for the server invoice.”",
+                    "Connect and get ready",
+                    "AgentGuard checks the network, BOT balance, Safety Policy, and trusted recipients.",
                   ],
                   [
                     "2",
-                    "AgentGuard checks",
-                    "The request is compared against your safety policy.",
+                    "Prompt, link, or QR",
+                    "Describe a payment or open a shared request. AgentGuard extracts and previews every field.",
                   ],
                   [
                     "3",
-                    "You make the decision",
-                    "The payment proceeds only after you approve it.",
+                    "You approve and track",
+                    "MetaMask signs, while live status, notifications, and on-chain history keep you informed.",
                   ],
                 ].map(([number, title, body]) => (
                   <div

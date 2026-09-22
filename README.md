@@ -8,7 +8,7 @@ This repository implements the baseline from `AgentGuard_Implementation_Plan.doc
 
 | Path | Owner | Purpose |
 | --- | --- | --- |
-| `frontend/` | Rafly Alif | Next.js frontend-only product demo and local policy simulation |
+| `frontend/` | Rafly Alif | Next.js wallet application, payment requests, previews, receipts, and on-chain insights |
 | `backend/` | Syahrafi + Project Lead | FastAPI, SQLite, RPC adapter, rate limiting |
 | `guard-engine/` | Project Lead | AI extraction adapter and deterministic policy engine |
 | `blockchain/` | Project Lead | Solidity policy/payment contract, tests, deploy script |
@@ -21,6 +21,10 @@ This repository implements the baseline from `AgentGuard_Implementation_Plan.doc
 - AI output is untrusted and validated before deterministic rules run.
 - The smart contract repeats transaction limit, daily limit, expiry, recipient, and pause checks.
 - Prompts are not persisted. The audit table stores a SHA-256 digest and sanitized decision metadata.
+- Payment templates are explicit opt-in structured records stored only in the user's browser.
+- Payment links contain recipient, amount, and purpose only; every request is re-evaluated and signed by the payer.
+- Gas sponsorship is reported unavailable until both a funded AgentGuard paymaster and the
+  ERC-4337 UserOperation submission path are implemented.
 - `NEXT_PUBLIC_*` values are public by definition and must never contain credentials.
 
 ## Local setup
@@ -56,6 +60,11 @@ The frontend flow is available at:
 - `/` — product introduction
 - `/login` — simulated demo login
 - `/dashboard` — the complete AgentGuard safety workspace
+- `/pay?...` — a shareable payment request that opens the same guarded workflow
+
+The workspace includes pay-by-link/QR, live balance and gas preview, policy readiness,
+structured payment templates, browser confirmation notifications, contract-event history,
+CSV/shareable receipts, and an on-chain spending assistant.
 
 ## Test and build
 

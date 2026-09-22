@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     botchain_testnet_rpc_url: str = "https://rpc.bohr.life"
     botchain_testnet_chain_id: int = 968
     botchain_testnet_explorer_url: str = "https://scan.bohr.life"
+    botchain_testnet_faucet_url: str = "https://faucet.botchain.ai"
+    botchain_bundler_url: str = "https://bundler.bohr.life/rpc/"
+    botchain_entry_point: str = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+    botchain_contract_deployment_block: int = Field(default=0, ge=0)
     botchain_contract_address: str = ""
     botchain_allocation_wallet: str = "0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91"
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Annotated
 
@@ -78,6 +79,10 @@ class SimulateResponse(BaseModel):
     allowed: bool
     reason: str
     estimated_gas: int | None = None
+    estimated_fee_bot: str | None = None
+    wallet_balance_bot: str | None = None
+    balance_after_bot: str | None = None
+    contract_address: Address | None = None
 
 
 class TransactionStatus(BaseModel):
@@ -85,6 +90,42 @@ class TransactionStatus(BaseModel):
     status: str
     block_number: int | None = None
     explorer_url: str
+
+
+class PaymentHistoryItem(BaseModel):
+    transaction_hash: TransactionHash
+    block_number: int
+    timestamp: datetime
+    payer: Address
+    recipient: Address
+    amount_bot: str
+    intent_hash: str
+    funded_from_balance: bool
+    explorer_url: str
+
+
+class RecipientPaymentSummary(BaseModel):
+    recipient: Address
+    payment_count: int
+    total_amount_bot: str
+
+
+class PaymentHistoryResponse(BaseModel):
+    wallet: Address
+    total_count: int
+    total_spent_bot: str
+    recipient_summaries: list[RecipientPaymentSummary]
+    items: list[PaymentHistoryItem]
+
+
+class WalletReadinessResponse(BaseModel):
+    wallet: Address
+    balance_bot: str
+    chain_id: int
+    bundler_available: bool
+    gasless_available: bool
+    entry_point: Address
+    faucet_url: str
 
 
 class ComponentHealth(BaseModel):
@@ -109,3 +150,7 @@ class PublicConfigResponse(BaseModel):
     explorer_url: str
     contract_address: Address
     allocation_wallet: Address
+    faucet_url: str
+    bundler_url: str
+    entry_point: Address
+    gasless_available: bool

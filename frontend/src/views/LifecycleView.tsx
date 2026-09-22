@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
 import type { EvaluationActivity, TransactionActivity } from "../lib/activity";
 import { transactionOf } from "../lib/botchain";
+import { notifyTransaction } from "../lib/notifications";
 import {
   Card,
   CopyBtn,
@@ -88,6 +89,12 @@ export default function LifecycleView({ evaluation, transaction, onTransaction }
       window.clearInterval(id);
     };
   }, [onTransaction, transaction]);
+
+  useEffect(() => {
+    if (transaction?.status === "confirmed" || transaction?.status === "reverted") {
+      notifyTransaction(transaction.status, transaction.transaction_hash);
+    }
+  }, [transaction?.status, transaction?.transaction_hash]);
 
   if (!transaction) return <EmptyLifecycle evaluation={evaluation} />;
 

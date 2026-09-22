@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import re
 from contextlib import asynccontextmanager
+from decimal import Decimal
 
 from agentguard_guard import (
     GuardDecision,
@@ -26,11 +27,15 @@ from .schemas import (
     ComponentHealth,
     GuardEvaluateRequest,
     HealthResponse,
+    PaymentHistoryItem,
+    PaymentHistoryResponse,
     PublicConfigResponse,
     RecipientAlias,
+    RecipientPaymentSummary,
     SimulateRequest,
     SimulateResponse,
     TransactionStatus,
+    WalletReadinessResponse,
 )
 
 settings = get_settings()
@@ -200,12 +205,31 @@ async def simulate_transaction(payload: SimulateRequest) -> SimulateResponse:
             amount_bot=payload.amount_bot,
             intent_hash=payload.intent_hash,
         )
+        balance_wei = await rpc.balance_wei(payload.wallet)
+        gas_price_wei = await rpc.gas_price_wei()
     except RpcError as exc:
         return SimulateResponse(allowed=False, reason=str(exc), estimated_gas=None)
+    amount_wei = rpc._to_wei(payload.amount_bot)
+    estimated_fee_wei = gas * gas_price_wei
+    balance_after_wei = balance_wei - amount_wei - estimated_fee_wei
+    if balance_after_wei < 0:
+        return SimulateResponse(
+            allowed=False,
+            reason="Wallet balance is insufficient for the payment and estimated gas fee",
+            estimated_gas=gas,
+            estimated_fee_bot=format(Decimal(estimated_fee_wei) / Decimal(10**18), "f"),
+            wallet_balance_bot=format(Decimal(balance_wei) / Decimal(10**18), "f"),
+            balance_after_bot=format(Decimal(balance_after_wei) / Decimal(10**18), "f"),
+            contract_address=settings.botchain_contract_address,
+        )
     return SimulateResponse(
         allowed=True,
         reason="Contract simulation succeeded",
         estimated_gas=gas,
+        estimated_fee_bot=format(Decimal(estimated_fee_wei) / Decimal(10**18), "f"),
+        wallet_balance_bot=format(Decimal(balance_wei) / Decimal(10**18), "f"),
+        balance_after_bot=format(Decimal(balance_after_wei) / Decimal(10**18), "f"),
+        contract_address=settings.botchain_contract_address,
     )
 
 
@@ -223,6 +247,12 @@ async def public_config() -> PublicConfigResponse:
         explorer_url=settings.botchain_testnet_explorer_url,
         contract_address=settings.botchain_contract_address,
         allocation_wallet=settings.botchain_allocation_wallet,
+        faucet_url=settings.botchain_testnet_faucet_url,
+        bundler_url=settings.botchain_bundler_url,
+        entry_point=settings.botchain_entry_point,
+        # A reachable bundler is not enough: this release does not yet submit
+        # ERC-4337 UserOperations through a funded project paymaster.
+        gasless_available=False,
     )
 
 
@@ -261,6 +291,74 @@ async def get_transaction(
         status=status,
         block_number=block_number,
         explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{transaction_hash}",
+    )
+
+
+@app.get("/api/botchain/history/{wallet}", response_model=PaymentHistoryResponse)
+async def get_payment_history(
+    wallet: str = Path(pattern=r"^0x[a-fA-F0-9]{40}$"),
+) -> PaymentHistoryResponse:
+    try:
+        history, total, total_count, recipient_totals = await rpc.payment_history(wallet)
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "HISTORY_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+    items = [
+        PaymentHistoryItem(
+            **{**item, "amount_bot": format(item["amount_bot"], "f")},
+            explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{item['transaction_hash']}",
+        )
+        for item in history
+    ]
+    recipient_summaries = [
+        RecipientPaymentSummary(
+            recipient=recipient,
+            payment_count=payment_count,
+            total_amount_bot=format(total_amount, "f"),
+        )
+        for recipient, (payment_count, total_amount) in sorted(
+            recipient_totals.items(),
+            key=lambda entry: (-entry[1][1], entry[0]),
+        )
+    ]
+    return PaymentHistoryResponse(
+        wallet=wallet,
+        total_count=total_count,
+        total_spent_bot=format(total, "f"),
+        recipient_summaries=recipient_summaries,
+        items=items,
+    )
+
+
+@app.get("/api/botchain/readiness/{wallet}", response_model=WalletReadinessResponse)
+async def get_wallet_readiness(
+    wallet: str = Path(pattern=r"^0x[a-fA-F0-9]{40}$"),
+) -> WalletReadinessResponse:
+    try:
+        balance_wei = await rpc.balance_wei(wallet)
+        chain_id = await rpc.chain_id()
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "READINESS_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+    try:
+        entry_points = await rpc.bundler_entry_points()
+        bundler_available = settings.botchain_entry_point.lower() in {
+            entry_point.lower() for entry_point in entry_points
+        }
+    except RpcError:
+        bundler_available = False
+    return WalletReadinessResponse(
+        wallet=wallet,
+        balance_bot=format(Decimal(balance_wei) / Decimal(10**18), "f"),
+        chain_id=chain_id,
+        bundler_available=bundler_available,
+        gasless_available=False,
+        entry_point=settings.botchain_entry_point,
+        faucet_url=settings.botchain_testnet_faucet_url,
     )
 
 

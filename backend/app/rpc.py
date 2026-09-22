@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -12,6 +13,9 @@ from eth_utils import keccak
 from .config import Settings
 
 WEI_PER_BOT = Decimal(10**18)
+PAYMENT_EXECUTED_TOPIC = "0x" + keccak(
+    text="PaymentExecuted(address,address,uint256,bytes32,bool)"
+).hex()
 CONTRACT_ERRORS = {
     "0x" + keccak(text=signature)[:4].hex(): message
     for signature, message in {
@@ -40,10 +44,13 @@ class BotChainRpc:
         self._settings = settings
 
     async def call(self, method: str, params: list[Any]) -> Any:
+        return await self._call_url(self._settings.botchain_testnet_rpc_url, method, params)
+
+    async def _call_url(self, url: str, method: str, params: list[Any]) -> Any:
         try:
             async with httpx.AsyncClient(timeout=5) as client:
                 response = await client.post(
-                    self._settings.botchain_testnet_rpc_url,
+                    url,
                     json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
                 )
                 response.raise_for_status()
@@ -129,6 +136,107 @@ class BotChainRpc:
 
     async def transaction_receipt(self, transaction_hash: str) -> dict[str, Any] | None:
         return await self.call("eth_getTransactionReceipt", [transaction_hash])
+
+    async def balance_wei(self, wallet: str) -> int:
+        result = await self.call("eth_getBalance", [wallet, "latest"])
+        return int(result, 16)
+
+    async def gas_price_wei(self) -> int:
+        result = await self.call("eth_gasPrice", [])
+        return int(result, 16)
+
+    async def bundler_entry_points(self) -> list[str]:
+        result = await self._call_url(
+            self._settings.botchain_bundler_url,
+            "eth_supportedEntryPoints",
+            [],
+        )
+        if not isinstance(result, list):
+            raise RpcError("BOT Chain bundler returned an invalid response")
+        return [str(value) for value in result]
+
+    async def payment_history(
+        self,
+        wallet: str,
+        *,
+        limit: int = 50,
+    ) -> tuple[
+        list[dict[str, Any]],
+        Decimal,
+        int,
+        dict[str, tuple[int, Decimal]],
+    ]:
+        payer_topic = "0x" + wallet.removeprefix("0x").lower().rjust(64, "0")
+        logs = await self.call(
+            "eth_getLogs",
+            [{
+                "fromBlock": hex(self._settings.botchain_contract_deployment_block),
+                "toBlock": "latest",
+                "address": self._require_contract(),
+                "topics": [PAYMENT_EXECUTED_TOPIC, payer_topic],
+            }],
+        )
+        if not isinstance(logs, list):
+            raise RpcError("BOT Chain returned an invalid payment history")
+        sortable: list[tuple[int, int, dict[str, Any]]] = []
+        for log in logs:
+            if not isinstance(log, dict) or log.get("removed"):
+                continue
+            try:
+                sortable.append((
+                    int(str(log["blockNumber"]), 16),
+                    int(str(log["logIndex"]), 16),
+                    log,
+                ))
+            except (KeyError, TypeError, ValueError):
+                continue
+
+        decoded: list[tuple[dict[str, Any], int, bool, str]] = []
+        total = Decimal(0)
+        total_count = 0
+        recipient_totals: dict[str, tuple[int, Decimal]] = {}
+        for _, _, log in sorted(sortable, key=lambda value: (value[0], value[1]), reverse=True):
+            topics = log.get("topics")
+            data = log.get("data")
+            if not isinstance(topics, list) or len(topics) < 4 or not isinstance(data, str):
+                continue
+            try:
+                amount_wei, funded_from_balance = decode(
+                    ["uint256", "bool"],
+                    bytes.fromhex(data.removeprefix("0x")),
+                )
+                recipient = "0x" + str(topics[2])[-40:]
+            except (KeyError, TypeError, ValueError):
+                continue
+            amount_bot = self._from_wei(int(amount_wei))
+            total += amount_bot
+            total_count += 1
+            key = recipient.lower()
+            count, recipient_total = recipient_totals.get(key, (0, Decimal(0)))
+            recipient_totals[key] = (count + 1, recipient_total + amount_bot)
+            if len(decoded) < limit:
+                decoded.append((log, int(amount_wei), bool(funded_from_balance), recipient))
+
+        block_hexes = list(dict.fromkeys(str(log["blockNumber"]) for log, _, _, _ in decoded))
+        blocks = await asyncio.gather(*(
+            self.call("eth_getBlockByNumber", [block_hex, False])
+            for block_hex in block_hexes
+        ))
+        block_times = {
+            block_hex: datetime.fromtimestamp(int(block["timestamp"], 16), UTC)
+            for block_hex, block in zip(block_hexes, blocks, strict=True)
+        }
+        items = [{
+            "transaction_hash": str(log["transactionHash"]),
+            "block_number": int(str(log["blockNumber"]), 16),
+            "timestamp": block_times[str(log["blockNumber"])],
+            "payer": "0x" + str(log["topics"][1])[-40:],
+            "recipient": recipient,
+            "amount_bot": self._from_wei(amount_wei),
+            "intent_hash": str(log["topics"][3]),
+            "funded_from_balance": funded_from_balance,
+        } for log, amount_wei, funded_from_balance, recipient in decoded]
+        return items, total, total_count, recipient_totals
 
     def _require_contract(self) -> str:
         contract = self._settings.botchain_contract_address
