@@ -78,7 +78,7 @@ Copy the resulting address into `BOTCHAIN_CONTRACT_ADDRESS` for the API and run 
 ## Production
 
 Set `DOMAIN`, origins, and contract address in `/srv/agentguard/.env`. For local Qwen,
-place the verified `Qwen3.5-9B-Q5_K_M.gguf` file in `/srv/agentguard/models/`; see
+place the verified `Qwen3-4B-Instruct-2507-Q4_K_M.gguf` file in `/srv/agentguard/models/`; see
 [operations](docs/operations.md). Then:
 
 ```bash

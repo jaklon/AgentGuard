@@ -114,7 +114,7 @@ async def test_llama_cpp_extraction_is_validated_and_marked_local() -> None:
         transport=httpx.MockTransport(responder), base_url="http://llm"
     ) as client:
         extractor = LlamaCppIntentExtractor(
-            base_url="http://llm", model="Qwen3.5-9B-Q5_K_M.gguf", client=client
+            base_url="http://llm", model="Qwen3-4B-Instruct-2507-Q4_K_M.gguf", client=client
         )
         result = await GuardService(
             primary_extractor=extractor, primary_source="local"
@@ -151,7 +151,7 @@ async def test_llama_cpp_rejects_an_unexpected_chain_id() -> None:
         base_url="http://llm",
     ) as client:
         extractor = LlamaCppIntentExtractor(
-            base_url="http://llm", model="Qwen3.5-9B-Q5_K_M.gguf", client=client
+            base_url="http://llm", model="Qwen3-4B-Instruct-2507-Q4_K_M.gguf", client=client
         )
         with pytest.raises(IntentExtractionError, match="unexpected chain ID"):
             await extractor.extract("Send BOT", 968)

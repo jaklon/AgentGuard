@@ -18,7 +18,7 @@ services:
       BOTCHAIN_ALLOCATION_WALLET: ${BOTCHAIN_ALLOCATION_WALLET:-0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91}
       DATABASE_URL: sqlite:////data/agentguard.db
       AI_PROVIDER: ${AI_PROVIDER:-llama_cpp}
-      AI_MODEL: ${AI_MODEL:-Qwen3.5-9B-Q5_K_M.gguf}
+      AI_MODEL: ${AI_MODEL:-Qwen3-4B-Instruct-2507-Q4_K_M.gguf}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-http://llm:8080}
       MODEL_TIMEOUT_SECONDS: ${MODEL_TIMEOUT_SECONDS:-60}
@@ -40,7 +40,7 @@ services:
     image: ghcr.io/ggml-org/llama.cpp:server
     command:
       - "-m"
-      - "/models/${LOCAL_LLM_MODEL_FILE:-Qwen3.5-9B-Q5_K_M.gguf}"
+      - "/models/${LOCAL_LLM_MODEL_FILE:-Qwen3-4B-Instruct-2507-Q4_K_M.gguf}"
       - "--host"
       - "0.0.0.0"
       - "--port"

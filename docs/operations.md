@@ -23,20 +23,17 @@ Set the real domain, exact HTTPS origin, and contract address. Keep testnet chai
 ## Local Qwen inference
 
 AgentGuard defaults to an internal CPU-only llama.cpp service. On the 4-OCPU, 24-GB
-ARM host, use the agreed `Qwen3.5-9B-Q5_K_M.gguf` artifact with a short (4,096-token)
+ARM host, use `Qwen3-4B-Instruct-2507-Q4_K_M.gguf` with a short (4,096-token)
 context and three inference threads. The model service is on the Compose network only;
 never publish port 8080 to the host or configure it as a public reverse-proxy route.
 
-Obtain the GGUF only from an approved publisher and record its SHA-256. Download it before
-starting Compose; this script refuses an unchecked artifact:
+Download the pinned GGUF before starting Compose. The script verifies the Hugging Face LFS
+SHA-256 before installing the file:
 
     cd /srv/agentguard
-    export LOCAL_LLM_MODEL_URL='https://APPROVED-PUBLISHER.example/Qwen3.5-9B-Q5_K_M.gguf'
-    export LOCAL_LLM_MODEL_SHA256='PUBLISHER_SHA256'
     ./infrastructure/scripts/fetch-local-model.sh
-    unset LOCAL_LLM_MODEL_URL LOCAL_LLM_MODEL_SHA256
 
-Set `AI_PROVIDER=llama_cpp`, `AI_MODEL=Qwen3.5-9B-Q5_K_M.gguf`, and
+Set `AI_PROVIDER=llama_cpp`, `AI_MODEL=Qwen3-4B-Instruct-2507-Q4_K_M.gguf`, and
 `LOCAL_LLM_BASE_URL=http://llm:8080` in `.env`. If the local model is unavailable, prompt
 evaluation safely falls back to deterministic extraction; `/api/health` reports the AI
 component as an error until llama.cpp is ready.

@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     botchain_allocation_wallet: str = "0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91"
 
     ai_provider: Literal["openai", "llama_cpp", "disabled"] = "llama_cpp"
-    ai_model: str = "Qwen3.5-9B-Q5_K_M.gguf"
+    ai_model: str = "Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
     openai_api_key: str = ""
     local_llm_base_url: str = "http://llm:8080"
     model_timeout_seconds: float = Field(default=60, ge=1, le=180)
