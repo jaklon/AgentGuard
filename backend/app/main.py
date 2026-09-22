@@ -7,6 +7,7 @@ from agentguard_guard import (
     GuardDecision,
     GuardService,
     IntentExtractionError,
+    LlamaCppIntentExtractor,
     OpenAIIntentExtractor,
 )
 from fastapi import Depends, FastAPI, HTTPException, Path, Request
@@ -24,6 +25,7 @@ from .schemas import (
     ComponentHealth,
     GuardEvaluateRequest,
     HealthResponse,
+    PublicConfigResponse,
     SimulateRequest,
     SimulateResponse,
     TransactionStatus,
@@ -34,19 +36,34 @@ configure_logging(settings.log_level)
 rpc = BotChainRpc(settings)
 
 primary_extractor = None
+local_extractor: LlamaCppIntentExtractor | None = None
 if settings.ai_provider == "openai" and settings.openai_api_key:
     primary_extractor = OpenAIIntentExtractor(
         api_key=settings.openai_api_key,
         model=settings.ai_model,
         timeout_seconds=settings.model_timeout_seconds,
     )
-guard = GuardService(primary_extractor=primary_extractor)
+elif settings.ai_provider == "llama_cpp":
+    local_extractor = LlamaCppIntentExtractor(
+        base_url=settings.local_llm_base_url,
+        model=settings.ai_model,
+        timeout_seconds=settings.model_timeout_seconds,
+    )
+    primary_extractor = local_extractor
+guard = GuardService(
+    primary_extractor=primary_extractor,
+    primary_source="local" if local_extractor else "openai",
+)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     init_db()
-    yield
+    try:
+        yield
+    finally:
+        if local_extractor:
+            await local_extractor.aclose()
 
 
 app = FastAPI(
@@ -75,9 +92,16 @@ async def evaluate_guard(
     db: Session = Depends(get_db),
 ) -> GuardDecision:
     try:
+        policy = await rpc.policy(payload.wallet)
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "POLICY_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+    try:
         result = await guard.evaluate(
             prompt=payload.prompt,
-            policy=payload.policy,
+            policy=policy,
             manual_intent=payload.manual_intent,
         )
     except IntentExtractionError as exc:
@@ -92,7 +116,7 @@ async def evaluate_guard(
     db.add(
         AuditRecord(
             request_id=request.state.request_id,
-            wallet=payload.policy.wallet,
+            wallet=payload.wallet,
             prompt_hash=prompt_hash,
             decision=result.decision.value,
             risk_score=result.risk_score,
@@ -122,6 +146,23 @@ async def simulate_transaction(payload: SimulateRequest) -> SimulateResponse:
         allowed=True,
         reason="Contract simulation succeeded",
         estimated_gas=gas,
+    )
+
+
+@app.get("/api/config", response_model=PublicConfigResponse)
+async def public_config() -> PublicConfigResponse:
+    if not settings.botchain_contract_address:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "CONTRACT_UNAVAILABLE", "message": "Contract address is not configured"},
+        )
+    return PublicConfigResponse(
+        chain_id=settings.botchain_testnet_chain_id,
+        chain_name="BOT Testnet",
+        rpc_url=settings.botchain_testnet_rpc_url,
+        explorer_url=settings.botchain_testnet_explorer_url,
+        contract_address=settings.botchain_contract_address,
+        allocation_wallet=settings.botchain_allocation_wallet,
     )
 
 
@@ -172,6 +213,7 @@ async def health(db: Session = Depends(get_db)) -> HealthResponse:
         database = ComponentHealth(status="error", detail="database unavailable")
 
     try:
+        await rpc.validate_contract()
         chain_id = await rpc.chain_id()
         expected = settings.botchain_testnet_chain_id
         if chain_id == expected:
@@ -184,11 +226,18 @@ async def health(db: Session = Depends(get_db)) -> HealthResponse:
     except RpcError:
         chain = ComponentHealth(status="error", detail="RPC unavailable")
 
-    ai = ComponentHealth(
-        status="ok" if primary_extractor else "fallback",
-        detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
-    )
-    overall = "ok" if database.status == "ok" and chain.status == "ok" else "degraded"
+    if local_extractor:
+        try:
+            await local_extractor.check_health()
+            ai = ComponentHealth(status="ok", detail=f"local llama.cpp: {settings.ai_model}")
+        except IntentExtractionError:
+            ai = ComponentHealth(status="error", detail="local llama.cpp unavailable")
+    else:
+        ai = ComponentHealth(
+            status="ok" if primary_extractor else "fallback",
+            detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
+        )
+    overall = "ok" if database.status == "ok" and chain.status == "ok" and ai.status != "error" else "degraded"
     return HealthResponse(
         status=overall,
         app_env=settings.app_env,

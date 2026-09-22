@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from .extractors import IntentExtractionError, IntentExtractor, ManualIntentExtractor
+from typing import Literal
+
 from .models import GuardDecision, PaymentIntent, PolicySnapshot
 from .policy import PolicyEvaluator
 
@@ -10,10 +12,12 @@ class GuardService:
         self,
         *,
         primary_extractor: IntentExtractor | None = None,
+        primary_source: Literal["openai", "local"] = "openai",
         fallback_extractor: IntentExtractor | None = None,
         evaluator: PolicyEvaluator | None = None,
     ) -> None:
         self._primary = primary_extractor
+        self._primary_source = primary_source
         self._fallback = fallback_extractor or ManualIntentExtractor()
         self._evaluator = evaluator or PolicyEvaluator()
 
@@ -33,7 +37,7 @@ class GuardService:
         elif self._primary is not None:
             try:
                 intent = await self._primary.extract(prompt, policy.chain_id)
-                source = "openai"
+                source = self._primary_source
             except Exception:
                 intent = await self._fallback.extract(prompt, policy.chain_id)
                 source = "deterministic"

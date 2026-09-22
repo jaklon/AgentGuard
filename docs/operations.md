@@ -2,7 +2,7 @@
 
 ## Host baseline
 
-- Ubuntu 24.04 x86_64; one Linux account and SSH public key per teammate.
+- Ubuntu 24.04 ARM64 (Oracle Cloud Ampere A1, 4 OCPU, 24 GB RAM); one Linux account and SSH public key per teammate.
 - Public ingress is limited to 22, 80, and 443; database and API ports remain on the Compose network.
 - /home/ubuntu/AgentGuard is the Project Lead development clone.
 - /srv/agentguard is a clean deployment checkout of reviewed main only.
@@ -18,7 +18,25 @@ OS patching, OCI firewall rules, DNS, spending alerts, teammate SSH keys, and Gi
     cp .env.example .env
     chmod 600 .env
 
-Set the real domain, exact HTTPS origin, contract address, and server-side OpenAI key. Keep testnet chain 968 until the release gate explicitly approves mainnet.
+Set the real domain, exact HTTPS origin, and contract address. Keep testnet chain 968 until the release gate explicitly approves mainnet.
+
+## Local Qwen inference
+
+AgentGuard defaults to an internal CPU-only llama.cpp service. On the 4-OCPU, 24-GB
+ARM host, use `Qwen3-4B-Instruct-2507-Q4_K_M.gguf` with a short (4,096-token)
+context and three inference threads. The model service is on the Compose network only;
+never publish port 8080 to the host or configure it as a public reverse-proxy route.
+
+Download the pinned GGUF before starting Compose. The script verifies the Hugging Face LFS
+SHA-256 before installing the file:
+
+    cd /srv/agentguard
+    ./infrastructure/scripts/fetch-local-model.sh
+
+Set `AI_PROVIDER=llama_cpp`, `AI_MODEL=Qwen3-4B-Instruct-2507-Q4_K_M.gguf`, and
+`LOCAL_LLM_BASE_URL=http://llm:8080` in `.env`. If the local model is unavailable, prompt
+evaluation safely falls back to deterministic extraction; `/api/health` reports the AI
+component as an error until llama.cpp is ready.
 
     docker compose config
     docker compose up -d --build

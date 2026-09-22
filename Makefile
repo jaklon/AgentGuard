@@ -1,4 +1,4 @@
-.PHONY: setup backend-dev frontend-dev test test-backend test-guard test-contracts test-frontend build compose-config compose-up compose-down
+.PHONY: setup backend-dev frontend-dev preview test test-backend test-guard test-contracts test-frontend build compose-config compose-up compose-down
 
 setup:
 	python3 -m venv .venv
@@ -12,6 +12,9 @@ backend-dev:
 
 frontend-dev:
 	cd frontend && npm run dev
+
+preview:
+	./start-frontend.sh
 
 test: test-guard test-backend test-contracts test-frontend
 

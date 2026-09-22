@@ -2,10 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState, type ReactNode } from "react";
-import DashboardView from "./views/DashboardView";
+import DashboardView from "./views/LiveDashboardView";
 import ErrorsView from "./views/ErrorsView";
 import LifecycleView from "./views/LifecycleView";
-import PolicyView from "./views/PolicyView";
+import PolicyView from "./views/LivePolicyView";
 import RiskView from "./views/RiskView";
 import BoardView from "./views/BoardView";
 import Onboarding from "./components/Onboarding";
@@ -39,10 +39,10 @@ type Tab =
   | "Architecture"
   | "UI Kit";
 const navGroups: { label: string; items: Tab[] }[] = [
-  { label: "Payments", items: ["Guard", "Manual", "Receipt"] },
+  { label: "Payments", items: ["Guard"] },
   { label: "Security", items: ["Policy", "Risk", "Lifecycle", "Errors"] },
 ];
-const mobileMain: Tab[] = ["Guard", "Manual", "Receipt"];
+const mobileMain: Tab[] = ["Guard"];
 const mobileMore: Tab[] = [
   "Policy",
   "Risk",
@@ -64,7 +64,6 @@ const navLabel: Record<Tab, string> = {
 export default function App() {
   const [tab, setTab] = useState<Tab>("Guard"),
     [open, setOpen] = useState(false),
-    [connected, setConnected] = useState(true),
     [guide, setGuide] = useState(false);
   useEffect(() => {
     setGuide(localStorage.getItem("agentguard-guide-seen") !== "1");
@@ -156,21 +155,17 @@ export default function App() {
             <h1 className="text-sm font-semibold">{navLabel[tab]}</h1>
           </div>
           <button
-            onClick={() => setConnected(!connected)}
+            onClick={() => setTab("Guard")}
             className="dashboard-wallet ml-auto flex items-center gap-3 rounded-full px-4 py-2 text-left"
           >
             <span
-              className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-slate-600"}`}
+              className={`h-2 w-2 rounded-full bg-slate-600`}
             />
             <span>
               <b className="block text-[11px] font-semibold">
-                {connected ? "Test wallet active" : "Connect wallet"}
+                Connect in Check Payment
               </b>
-              {connected && (
-                <Mono className="block text-[9px] text-slate-600">
-                  0x71C…3A9 · 1.50 BOT
-                </Mono>
-              )}
+              <Mono className="block text-[9px] text-slate-600">BOT Testnet · 968</Mono>
             </span>
           </button>
         </div>
@@ -190,8 +185,8 @@ export default function App() {
         </AnimatePresence>
       </main>
       <footer className="dashboard-footer mx-auto hidden max-w-[1320px] justify-between px-10 py-8 text-[10px] lg:flex">
-        <span>AgentGuard · Local policy engine</span>
-        <span>BOT Chain Testnet · Chain 968</span>
+        <span>AgentGuard · BOT Testnet</span>
+        <span>Wallet signatures stay in MetaMask</span>
       </footer>
       <nav className="dashboard-mobile-nav fixed inset-x-0 bottom-0 z-50 px-2 py-2 backdrop-blur-xl lg:hidden">
         <div className="mx-auto grid max-w-md grid-cols-4 gap-1">

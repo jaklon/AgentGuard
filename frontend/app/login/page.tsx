@@ -62,12 +62,12 @@ export default function LoginPage() {
             control room.
           </h1>
           <p>
-            Review AI payment requests in a focused testnet workspace before
-            anything reaches the approval stage.
+            Connect your BOT Testnet wallet from the dashboard. This frontend
+            simulation demonstrates the AgentGuard safety flow.
           </p>
         </div>
         <div className="login-reveal login-promise">
-          <i /> No real funds are sent
+          <i /> Wallet signatures stay in MetaMask
         </div>
       </section>
 
