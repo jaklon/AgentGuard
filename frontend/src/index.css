@@ -2,10 +2,10 @@
 
 :root {
   font-family: var(--font-inter), system-ui, sans-serif;
-  background: #f1efe8;
-  color: #101110;
+  background: #080b0c;
+  color: #f4efe1;
   font-synthesis: none;
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 * {
@@ -13,15 +13,15 @@
 }
 
 html {
-  background: #f1efe8;
+  background: #080b0c;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f1efe8;
-  color: #101110;
+  background: #080b0c;
+  color: #f4efe1;
 }
 
 button,
@@ -49,7 +49,7 @@ button:disabled {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #aaa79d;
+  background: #434a47;
   border-radius: 9px;
 }
 
@@ -60,9 +60,9 @@ button:disabled {
 .input {
   width: 100%;
   padding: 14px 16px;
-  color: #101110;
-  background: #ebe8df;
-  border: 1px solid rgba(16, 17, 16, 0.22);
+  color: #f4efe1;
+  background: #0d1213;
+  border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 14px;
   outline: none;
   transition:
@@ -72,17 +72,37 @@ button:disabled {
 }
 
 .input:focus {
-  background: #faf9f4;
-  border-color: #5046e5;
-  box-shadow: 0 0 0 3px rgba(80, 70, 229, 0.12);
+  background: #111718;
+  border-color: #9b87ff;
+  box-shadow: 0 0 0 3px rgba(155, 135, 255, 0.14);
 }
 
 .input::placeholder {
-  color: #93938a;
+  color: #747b76;
 }
 
 .mono {
   font-family: var(--font-mono), monospace;
+}
+
+.brand-logo-crop {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 28%;
+  background: #050708;
+}
+
+.brand-logo-crop img {
+  position: absolute;
+  width: 308%;
+  max-width: none;
+  height: auto;
+  left: -105%;
+  top: -21%;
+  pointer-events: none;
+  user-select: none;
 }
 
 .soft {
@@ -106,26 +126,26 @@ button:disabled {
 
 /* The workspace continues the introduction page visual language. */
 .dashboard-shell {
-  --dash-paper: #f1efe8;
-  --dash-ink: #101110;
-  --dash-lime: #b9f54a;
-  --dash-cobalt: #5046e5;
-  --dash-muted: #6d6e66;
-  --dash-line: rgba(16, 17, 16, 0.15);
+  --dash-paper: #080b0c;
+  --dash-ink: #f4efe1;
+  --dash-lime: #d6c38c;
+  --dash-cobalt: #9b87ff;
+  --dash-muted: #929890;
+  --dash-line: rgba(255, 255, 255, 0.11);
   min-height: 100vh;
   color: var(--dash-ink);
   background:
     radial-gradient(
       circle at 94% 2%,
-      rgba(185, 245, 74, 0.2),
-      transparent 21rem
+      rgba(214, 195, 140, 0.09),
+      transparent 24rem
     ),
     var(--dash-paper);
 }
 
 .dashboard-sidebar {
   color: var(--dash-ink);
-  background: #e2ded3;
+  background: #0e1314;
   border-right: 1px solid var(--dash-line);
 }
 
@@ -149,14 +169,14 @@ button:disabled {
 
 .dashboard-header {
   color: var(--dash-ink);
-  background: rgba(241, 239, 232, 0.82);
+  background: rgba(8, 11, 12, 0.82);
   border-bottom: 1px solid var(--dash-line);
 }
 
 .dashboard-wallet {
-  background: rgba(250, 249, 244, 0.78);
+  background: rgba(20, 25, 27, 0.88);
   border: 1px solid var(--dash-line);
-  box-shadow: 0 4px 16px rgba(16, 17, 16, 0.05);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22);
 }
 
 .dashboard-main {
@@ -171,9 +191,9 @@ button:disabled {
 .dashboard-mobile-nav,
 .dashboard-mobile-sheet {
   color: var(--dash-ink);
-  background: rgba(250, 249, 244, 0.94);
+  background: rgba(14, 19, 20, 0.96);
   border: 1px solid var(--dash-line);
-  box-shadow: 0 -8px 32px rgba(16, 17, 16, 0.08);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.28);
 }
 
 .dashboard-mobile-nav {
@@ -181,7 +201,7 @@ button:disabled {
 }
 
 .dashboard-nav-item:hover {
-  background: rgba(16, 17, 16, 0.045) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
 }
 
 .dashboard-shell [class*="text-slate-"] {
@@ -197,12 +217,12 @@ button:disabled {
 }
 
 .dashboard-shell [class*="bg-white/"] {
-  background-color: rgba(16, 17, 16, 0.04);
+  background-color: rgba(255, 255, 255, 0.045);
 }
 
 .dashboard-shell [class*="bg-[#0a101c]"] {
   color: var(--dash-ink);
-  background: #ebe8df;
+  background: #0d1213;
 }
 
 .dashboard-shell .soft {
@@ -217,6 +237,19 @@ button:disabled {
 .editorial-head h1 {
   max-width: 900px;
   line-height: 0.96;
+}
+
+
+.dashboard-shell [class*="text-[#101110]"] {
+  color: var(--dash-ink);
+}
+
+.dashboard-shell [class*="bg-[#faf9f4]"] {
+  background-color: #14191b;
+}
+
+.onboarding-panel [class*="text-slate-"] {
+  color: #9da39c;
 }
 
 /* Main guard screen */
@@ -258,19 +291,19 @@ button:disabled {
   font-size: clamp(48px, 6.5vw, 94px);
 }
 
-.guard-demo-note {
-  background: var(--dash-ink);
-  color: #aaa99f !important;
+.guard-status-note {
+  background: #111617;
+  color: #a8ada6 !important;
   border-left: 5px solid var(--dash-lime);
   border-radius: 0 14px 14px 0;
 }
 
-.guard-demo-note [class*="text-emerald-"] {
+.guard-status-note [class*="text-emerald-"] {
   color: var(--dash-lime);
 }
 
 .guard-glossary {
-  background: rgba(250, 249, 244, 0.64);
+  background: rgba(255, 255, 255, 0.025);
   border: 1px solid var(--dash-line);
 }
 
@@ -279,10 +312,10 @@ button:disabled {
 }
 
 .guard-policy-card {
-  color: #f1efe8;
-  background: var(--dash-ink) !important;
-  border-color: var(--dash-ink) !important;
-  box-shadow: 8px 8px 0 var(--dash-lime);
+  color: #f4efe1;
+  background: #0d1112 !important;
+  border-color: rgba(214, 195, 140, 0.25) !important;
+  box-shadow: 8px 8px 0 rgba(214, 195, 140, 0.28);
 }
 
 .guard-policy-card [class*="text-slate-"],
@@ -300,19 +333,19 @@ button:disabled {
 }
 
 .guard-command-card {
-  background: #faf9f4 !important;
-  border: 1px solid rgba(16, 17, 16, 0.3) !important;
-  box-shadow: 10px 10px 0 rgba(80, 70, 229, 0.12);
+  background: #14191b !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  box-shadow: 10px 10px 0 rgba(155, 135, 255, 0.09);
 }
 
 .guard-command-input {
   background:
-    linear-gradient(#ebe8df, #ebe8df) padding-box,
+    linear-gradient(#0d1213, #0d1213) padding-box,
     repeating-linear-gradient(
       0deg,
       transparent 0,
       transparent 27px,
-      rgba(16, 17, 16, 0.06) 28px
+      rgba(255, 255, 255, 0.045) 28px
     );
 }
 
@@ -330,7 +363,7 @@ button:disabled {
     right: -8px;
   }
 
-  .guard-demo-note {
+  .guard-status-note {
     max-width: 100%;
   }
 }

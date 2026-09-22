@@ -108,13 +108,12 @@ export default function DashboardView() {
               you whether the payment is safe, needs review, or must be blocked.
             </p>
           </div>
-          <div className="guard-demo-note py-4 pl-5 text-xs lg:max-w-[300px]">
+          <div className="guard-status-note py-4 pl-5 text-xs lg:max-w-[300px]">
             <div className="flex items-center gap-2 font-semibold text-emerald-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Safe demo
-              mode
+              <span className="h-2 w-2 rounded-full bg-emerald-400" /> Policy checks active
             </div>
             <p className="mt-2 leading-5">
-              No real wallet is connected and no real funds are sent.
+              Requests are evaluated locally before any wallet approval step.
             </p>
           </div>
         </div>
@@ -147,7 +146,7 @@ export default function DashboardView() {
         <Card className="guard-policy-card order-2 h-fit p-6 lg:order-1 lg:sticky lg:top-28">
           <CardHeader
             eyebrow="Your safety policy"
-            title="Demo wallet limits"
+            title="Active payment limits"
             action={<Pill status="ACTIVE" label="ACTIVE" />}
           />
           <p className="mt-2 text-xs leading-5 text-slate-500">
@@ -375,8 +374,7 @@ function ResultCard({ result }: { result: Result }) {
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center justify-center gap-2 rounded-xl bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-300"
             >
-              <Icon name="check" /> Demo payment approved — no real funds were
-              sent
+              <Icon name="check" /> Approval recorded — the request passed every active rule
             </motion.div>
           ) : result.status === "ALLOW" ? (
             <MBtn
@@ -389,12 +387,12 @@ function ResultCard({ result }: { result: Result }) {
               {signing ? (
                 <>
                   <Spinner />
-                  Simulating wallet approval…
+                  Waiting for wallet approval…
                 </>
               ) : (
                 <>
                   <Icon name="wallet" />
-                  Approve demo payment
+                  Approve payment
                 </>
               )}
             </MBtn>
@@ -412,7 +410,7 @@ function ResultCard({ result }: { result: Result }) {
                   Recording your decision…
                 </>
               ) : (
-                "I understand the risk — continue demo"
+                "I understand the risk — continue"
               )}
             </MBtn>
           ) : (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { BrandLogo } from "../src/shared";
 
 export default function IntroductionPage() {
   const root = useRef<HTMLElement>(null);
@@ -51,28 +52,48 @@ export default function IntroductionPage() {
         },
       });
 
-      gsap.to("[data-orbit-card='request']", {
-        xPercent: 18,
-        yPercent: -12,
-        rotate: -3,
-        scrollTrigger: {
-          trigger: "[data-system]",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1,
-        },
-      });
-      gsap.to("[data-orbit-card='decision']", {
-        xPercent: -16,
-        yPercent: 14,
-        rotate: 3,
-        scrollTrigger: {
-          trigger: "[data-system]",
-          start: "top bottom",
-          end: "bottom top",
-          scrub: 1,
-        },
-      });
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (!reduceMotion) {
+        gsap.to("[data-flow-path]", {
+          strokeDashoffset: -64,
+          duration: 2.4,
+          ease: "none",
+          repeat: -1,
+        });
+        gsap.to("[data-flow-core]", {
+          scale: 1.045,
+          duration: 1.8,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
+        gsap.to("[data-orbit-card='request']", {
+          y: -14,
+          rotate: -2.5,
+          duration: 2.8,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
+        gsap.to("[data-orbit-card='decision']", {
+          y: 14,
+          rotate: 2.5,
+          duration: 3.1,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
+        gsap.to("[data-system-core]", {
+          rotate: 3,
+          scale: 1.035,
+          duration: 2.2,
+          ease: "sine.inOut",
+          yoyo: true,
+          repeat: -1,
+        });
+      }
     }, root);
     return () => context.revert();
   }, []);
@@ -84,7 +105,7 @@ export default function IntroductionPage() {
       </div>
       <nav data-intro-nav className="intro-nav">
         <Link href="/" className="intro-brand" aria-label="AgentGuard home">
-          <GuardMark />
+          <BrandLogo size={36} />
           <span>AgentGuard</span>
         </Link>
         <div className="intro-nav-right">
@@ -121,7 +142,7 @@ export default function IntroductionPage() {
           </p>
           <div data-intro-copy className="intro-actions">
             <Link href="/login" className="intro-cta">
-              Try the live demo <span>↗</span>
+              Open AgentGuard <span>↗</span>
             </Link>
             <a href="#how" className="intro-text-link">
               See how it works ↓
@@ -133,8 +154,8 @@ export default function IntroductionPage() {
           <div className="intro-agent-chip">
             <i /> AI AGENT <b>REQUESTING</b>
           </div>
-          <div className="intro-guard-core">
-            <GuardMark large />
+          <div className="intro-guard-core" data-flow-core>
+            <BrandLogo size={64} />
             <span>CHECK</span>
           </div>
           <div className="intro-human-chip">
@@ -145,7 +166,7 @@ export default function IntroductionPage() {
             viewBox="0 0 1000 260"
             preserveAspectRatio="none"
           >
-            <path d="M90 130 C300 20 370 235 510 130 S740 50 910 130" />
+            <path data-flow-path d="M90 130 C300 20 370 235 510 130 S740 50 910 130" />
           </svg>
         </div>
       </section>
@@ -179,8 +200,8 @@ export default function IntroductionPage() {
             <p>“Send 0.01 BOT for the server invoice.”</p>
             <small>Natural language input</small>
           </article>
-          <div className="intro-system-core">
-            <GuardMark large />
+          <div className="intro-system-core" data-system-core>
+            <BrandLogo size={76} />
             <b>AGENTGUARD</b>
             <span>Policy engine</span>
           </div>
@@ -234,14 +255,26 @@ export default function IntroductionPage() {
         <div className="intro-proof-grid">
           <article data-reveal>
             <b>LOCAL</b>
+            <div className="intro-proof-visual intro-proof-local" aria-hidden="true">
+              <span>policy.evaluate(request)</span>
+              <i />
+              <i />
+              <i />
+              <strong>12 / 100</strong>
+            </div>
             <h3>Deterministic evaluation</h3>
             <p>
-              The demo evaluates policy directly in the browser. No instruction
-              is sent to a server.
+              Policy checks run directly in the browser. Each request follows
+              the same clear rules.
             </p>
           </article>
           <article data-reveal>
             <b>VISIBLE</b>
+            <div className="intro-proof-visual intro-proof-visible" aria-hidden="true">
+              <span><i /> Amount within limit</span>
+              <span><i /> Recipient verified</span>
+              <span><i /> Daily allowance available</span>
+            </div>
             <h3>Reasons, not just a score</h3>
             <p>
               Every decision includes reasons and checks you can understand.
@@ -249,6 +282,11 @@ export default function IntroductionPage() {
           </article>
           <article data-reveal>
             <b>HUMAN</b>
+            <div className="intro-proof-visual intro-proof-human" aria-hidden="true">
+              <span>AGENTGUARD</span>
+              <strong>Ready for your approval</strong>
+              <i>APPROVE</i>
+            </div>
             <h3>Approval stays yours</h3>
             <p>AI proposes. AgentGuard checks. You decide.</p>
           </article>
@@ -256,7 +294,7 @@ export default function IntroductionPage() {
       </section>
 
       <section className="intro-final" data-reveal>
-        <GuardMark large />
+        <BrandLogo size={96} />
         <p>Built for BOT Chain · Designed around human control</p>
         <h2>
           Let AI do the work.
@@ -269,7 +307,7 @@ export default function IntroductionPage() {
       </section>
       <footer className="intro-footer">
         <span>© 2026 AgentGuard</span>
-        <span>Frontend-only prototype · No real funds</span>
+        <span>BOT Chain Testnet · Human approval required</span>
       </footer>
     </main>
   );

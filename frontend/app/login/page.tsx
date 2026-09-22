@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { animate, createScope, stagger } from "animejs";
+import { BrandLogo } from "../../src/shared";
 
 export default function LoginPage() {
   const root = useRef<HTMLDivElement>(null);
@@ -51,18 +52,18 @@ export default function LoginPage() {
       </Link>
       <section className="login-story">
         <div className="login-reveal login-brand">
-          <span>AG</span> AgentGuard
+          <BrandLogo size={38} /> AgentGuard
         </div>
         <div className="login-reveal login-copy">
-          <p className="login-eyebrow">DEMO ACCESS · BOT TESTNET</p>
+          <p className="login-eyebrow">SECURE ACCESS · BOT TESTNET</p>
           <h1>
             Enter the human
             <br />
             control room.
           </h1>
           <p>
-            No real account, password, or wallet is required. This frontend
-            simulation demonstrates the AgentGuard safety flow.
+            Review AI payment requests in a focused testnet workspace before
+            anything reaches the approval stage.
           </p>
         </div>
         <div className="login-reveal login-promise">
@@ -78,11 +79,11 @@ export default function LoginPage() {
           <div className="login-orbit-core">✓</div>
         </div>
         <div className="login-reveal login-panel-copy">
-          <span>SIMULATED IDENTITY</span>
-          <h2>Demo User</h2>
+          <span>LOCAL OPERATOR</span>
+          <h2>Operator Workspace</h2>
           <p>
-            This profile exists only in your browser and is ready to explore the
-            full experience.
+            This browser-based profile keeps the payment review flow fast and
+            focused.
           </p>
         </div>
         <div className="login-reveal login-profile">
@@ -101,17 +102,17 @@ export default function LoginPage() {
         >
           {loading ? (
             <>
-              <span className="login-spinner" /> Preparing your demo workspace…
+              <span className="login-spinner" /> Preparing your workspace…
             </>
           ) : (
             <>
-              Continue as demo user <span>→</span>
+              Enter AgentGuard <span>→</span>
             </>
           )}
         </button>
         <p className="login-disclaimer login-reveal">
-          By continuing, you enter a local simulation. There is no real
-          authentication or wallet connection.
+          This frontend build uses a local profile and simulated wallet state on
+          BOT Chain Testnet.
         </p>
       </section>
     </main>
