@@ -65,6 +65,35 @@ def test_rejects_floating_point_amount() -> None:
     assert response.status_code == 422
 
 
+def test_evaluates_a_saved_recipient_name_without_an_address_in_prompt() -> None:
+    payload = {
+        "wallet": WALLET,
+        "prompt": "Send 0.01 BOT to Alice for testnet demo",
+        "recipient_aliases": [{"name": "Alice", "address": RECIPIENT}],
+    }
+    with TestClient(app) as client:
+        response = client.post("/api/guard/evaluate", json=payload)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["decision"] == "ALLOW"
+    assert body["intent"]["recipient"].lower() == RECIPIENT.lower()
+
+
+def test_rejects_an_ambiguous_recipient_name() -> None:
+    payload = {
+        "wallet": WALLET,
+        "prompt": "Send 0.01 BOT to Alice and Bob",
+        "recipient_aliases": [
+            {"name": "Alice", "address": RECIPIENT},
+            {"name": "Bob", "address": "0x3333333333333333333333333333333333333333"},
+        ],
+    }
+    with TestClient(app) as client:
+        response = client.post("/api/guard/evaluate", json=payload)
+    assert response.status_code == 422
+    assert response.json()["detail"]["message"] == "Choose exactly one recipient"
+
+
 def test_rejects_zero_simulation_intent_hash() -> None:
     payload = {"wallet": WALLET, "recipient": RECIPIENT, "amount_bot": "0.01", "intent_hash": "0x" + ("00" * 32)}
     with TestClient(app) as client:

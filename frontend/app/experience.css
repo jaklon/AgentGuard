@@ -717,49 +717,8 @@ html {
   font-size: 13px;
   max-width: 450px;
 }
-.login-profile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  border-top: 1px solid #30322f;
-  border-bottom: 1px solid #30322f;
-  padding: 20px 0;
-  margin: 38px 0 22px;
-}
-.login-avatar {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: #292b28;
-  color: var(--lime);
-  font-size: 11px;
-  font-weight: 800;
-}
-.login-profile b,
-.login-profile span {
-  display: block;
-}
-.login-profile b {
-  font-size: 12px;
-}
-.login-profile span {
-  margin-top: 4px;
-  color: #74776f;
-  font:
-    500 9px "JetBrains Mono",
-    monospace;
-}
-.login-profile small {
-  margin-left: auto;
-  color: #7fdb98;
-  font:
-    700 8px "JetBrains Mono",
-    monospace;
-  letter-spacing: 0.12em;
-}
 .login-button {
+  margin-top: 38px;
   width: 100%;
   border: 0;
   background: var(--lime);

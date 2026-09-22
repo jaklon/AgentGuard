@@ -12,7 +12,13 @@ chmod 700 "$BACKUP_ROOT" "$TARGET"
 if [ -f "$PROJECT_ROOT/.env" ]; then
   install -m 600 "$PROJECT_ROOT/.env" "$TARGET/env"
 fi
-if [ -f "$PROJECT_ROOT/backend/data/agentguard.db" ]; then
+if command -v docker >/dev/null 2>&1 \
+    && docker compose -f "$PROJECT_ROOT/docker-compose.yml" ps --status running --services 2>/dev/null \
+        | grep -qx backend; then
+  docker compose -f "$PROJECT_ROOT/docker-compose.yml" cp \
+    backend:/data/agentguard.db "$TARGET/agentguard.db"
+  chmod 600 "$TARGET/agentguard.db"
+elif [ -f "$PROJECT_ROOT/backend/data/agentguard.db" ]; then
   install -m 600 "$PROJECT_ROOT/backend/data/agentguard.db" "$TARGET/agentguard.db"
 fi
 install -m 600 "$PROJECT_ROOT/docker-compose.yml" "$TARGET/docker-compose.yml"

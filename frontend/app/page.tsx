@@ -264,8 +264,8 @@ export default function IntroductionPage() {
             </div>
             <h3>Deterministic evaluation</h3>
             <p>
-              Policy checks run directly in the browser. Each request follows
-              the same clear rules.
+              Policy checks run against live contract settings before your wallet
+              opens. Each request follows the same clear rules.
             </p>
           </article>
           <article data-reveal>

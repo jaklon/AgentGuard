@@ -1,5 +1,17 @@
 {$DOMAIN} {
 	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-X-Powered-By
+		-Server
+	}
+
+	# This application has no Next.js Server Actions. Reject forged action IDs at
+	# the edge so automated probes never reach the frontend runtime.
+	@unknown_server_action header Next-Action *
+	handle @unknown_server_action {
+		respond 404
+	}
 
 	@api path /api/*
 	handle @api {
@@ -9,9 +21,6 @@
 	handle {
 		reverse_proxy frontend:5173
 		header {
-			Permissions-Policy "camera=(), microphone=(), geolocation=()"
-			Referrer-Policy "no-referrer"
-			X-Content-Type-Options "nosniff"
 			X-Frame-Options "DENY"
 		}
 	}

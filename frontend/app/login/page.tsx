@@ -62,8 +62,8 @@ export default function LoginPage() {
             control room.
           </h1>
           <p>
-            Connect your BOT Testnet wallet from the dashboard. This frontend
-            simulation demonstrates the AgentGuard safety flow.
+            Connect your BOT Testnet wallet from the dashboard. AgentGuard checks
+            the live on-chain policy before asking for wallet approval.
           </p>
         </div>
         <div className="login-reveal login-promise">
@@ -86,14 +86,6 @@ export default function LoginPage() {
             focused.
           </p>
         </div>
-        <div className="login-reveal login-profile">
-          <div className="login-avatar">RA</div>
-          <div>
-            <b>Rafly Alif</b>
-            <span>0x71C…3A9 · 1.50 BOT</span>
-          </div>
-          <small>READY</small>
-        </div>
         <button
           ref={button}
           onClick={enter}
@@ -111,8 +103,8 @@ export default function LoginPage() {
           )}
         </button>
         <p className="login-disclaimer login-reveal">
-          This frontend build uses a local profile and simulated wallet state on
-          BOT Chain Testnet.
+          Your profile stays in this browser. Payments require your connected
+          wallet and an explicit signature on BOT Chain Testnet.
         </p>
       </section>
     </main>

@@ -12,6 +12,23 @@ from eth_utils import keccak
 from .config import Settings
 
 WEI_PER_BOT = Decimal(10**18)
+CONTRACT_ERRORS = {
+    "0x" + keccak(text=signature)[:4].hex(): message
+    for signature, message in {
+        "InvalidAmount()": "Payment amount must be greater than zero",
+        "InvalidPolicy()": "Wallet policy is not configured or is invalid",
+        "PolicyExpired()": "Wallet policy has expired",
+        "WalletPaused()": "Wallet payments are paused",
+        "RecipientNotAllowed()": "Recipient is not on the wallet allowlist",
+        "TransactionLimitExceeded()": "Payment exceeds the per-transaction limit",
+        "DailyLimitExceeded()": "Payment exceeds the remaining daily limit",
+        "IntentAlreadyUsed()": "This payment intent has already been used",
+        "InvalidIntentHash()": "Payment intent identifier is invalid",
+        "TooManyRecipients()": "Recipient allowlist has reached its maximum size",
+        "TransferFailed()": "BOT transfer failed",
+        "InsufficientBalance()": "Wallet contract balance is insufficient",
+    }.items()
+}
 
 
 class RpcError(RuntimeError):
@@ -34,8 +51,7 @@ class BotChainRpc:
         except (httpx.HTTPError, ValueError) as exc:
             raise RpcError("BOT Chain RPC is unavailable") from exc
         if payload.get("error"):
-            message = str(payload["error"].get("message", "RPC request rejected"))
-            raise RpcError(message[:240])
+            raise RpcError(contract_error_message(payload["error"]))
         return payload.get("result")
 
     async def chain_id(self) -> int:
@@ -130,3 +146,16 @@ class BotChainRpc:
     @staticmethod
     def _from_wei(amount: int) -> Decimal:
         return Decimal(amount) / WEI_PER_BOT
+
+
+def contract_error_message(error: object) -> str:
+    """Translate known AgentGuard custom-error selectors into user-facing text."""
+    serialized = str(error).lower()
+    for selector, message in CONTRACT_ERRORS.items():
+        if selector in serialized:
+            return message
+    if isinstance(error, dict):
+        message = str(error.get("message", "RPC request rejected"))
+    else:
+        message = str(error or "RPC request rejected")
+    return message[:240]

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from contextlib import asynccontextmanager
 
 from agentguard_guard import (
@@ -26,6 +27,7 @@ from .schemas import (
     GuardEvaluateRequest,
     HealthResponse,
     PublicConfigResponse,
+    RecipientAlias,
     SimulateRequest,
     SimulateResponse,
     TransactionStatus,
@@ -99,8 +101,11 @@ async def evaluate_guard(
             detail={"code": "POLICY_UNAVAILABLE", "message": str(exc)},
         ) from exc
     try:
+        resolved_prompt, expected_recipient = resolve_recipient_aliases(
+            payload.prompt, payload.recipient_aliases
+        )
         result = await guard.evaluate(
-            prompt=payload.prompt,
+            prompt=resolved_prompt,
             policy=policy,
             manual_intent=payload.manual_intent,
         )
@@ -109,6 +114,17 @@ async def evaluate_guard(
             status_code=422,
             detail={"code": "INTENT_INVALID", "message": str(exc)},
         ) from exc
+
+    if expected_recipient and (
+        result.intent is None or result.intent.recipient.lower() != expected_recipient.lower()
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "RECIPIENT_MISMATCH",
+                "message": "Could not safely match the payment to the selected trusted recipient",
+            },
+        )
 
     prompt_hash = (
         hashlib.sha256(payload.prompt.encode("utf-8")).hexdigest() if payload.prompt else None
@@ -129,6 +145,50 @@ async def evaluate_guard(
     )
     db.commit()
     return result
+
+
+ADDRESS_PATTERN = re.compile(r"0x[a-fA-F0-9]{40}")
+
+
+def resolve_recipient_aliases(
+    prompt: str | None, aliases: list[RecipientAlias]
+) -> tuple[str | None, str | None]:
+    """Replace one saved name with its address before intent extraction.
+
+    An alias is client-owned convenience data, never an authorization mechanism:
+    the extracted address is still compared to it and checked against the on-chain policy.
+    """
+    if prompt is None:
+        return None, None
+    explicit_addresses = list(dict.fromkeys(ADDRESS_PATTERN.findall(prompt)))
+    normalized: dict[str, RecipientAlias] = {}
+    for alias in aliases:
+        key = alias.name.casefold()
+        if key in normalized and normalized[key].address.lower() != alias.address.lower():
+            raise IntentExtractionError("Recipient names must be unique")
+        normalized[key] = alias
+
+    matches: list[RecipientAlias] = []
+    for alias in sorted(normalized.values(), key=lambda value: len(value.name), reverse=True):
+        pattern = re.compile(rf"(?<![\w-]){re.escape(alias.name)}(?![\w-])", re.IGNORECASE)
+        if pattern.search(prompt):
+            matches.append(alias)
+
+    matched_addresses = {alias.address.lower() for alias in matches}
+    if explicit_addresses and matches:
+        raise IntentExtractionError("Use either one trusted recipient name or one wallet address, not both")
+    if len(explicit_addresses) > 1 or len(matched_addresses) > 1:
+        raise IntentExtractionError("Choose exactly one recipient")
+    if explicit_addresses:
+        return prompt, explicit_addresses[0]
+    if not matches:
+        if aliases:
+            raise IntentExtractionError("Recipient not recognized. Choose a saved trusted recipient name")
+        return prompt, None
+
+    recipient = matches[0]
+    pattern = re.compile(rf"(?<![\w-]){re.escape(recipient.name)}(?![\w-])", re.IGNORECASE)
+    return pattern.sub(recipient.address, prompt), recipient.address
 
 
 @app.post("/api/botchain/simulate", response_model=SimulateResponse)

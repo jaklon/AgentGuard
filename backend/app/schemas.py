@@ -10,12 +10,29 @@ Address = Annotated[str, Field(pattern=r"^0x[a-fA-F0-9]{40}$")]
 TransactionHash = Annotated[str, Field(pattern=r"^0x[a-fA-F0-9]{64}$")]
 
 
+class RecipientAlias(BaseModel):
+    """A user-owned display name for an already allowlisted recipient."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=64)
+    address: Address
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        if not any(character.isalnum() for character in value):
+            raise ValueError("recipient alias must contain a letter or number")
+        return value
+
+
 class GuardEvaluateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prompt: str | None = Field(default=None, min_length=1, max_length=2_000)
     manual_intent: PaymentIntent | None = None
     wallet: Address
+    recipient_aliases: list[RecipientAlias] = Field(default_factory=list, max_length=100)
 
     @model_validator(mode="after")
     def require_one_input(self) -> "GuardEvaluateRequest":

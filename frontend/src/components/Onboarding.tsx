@@ -51,7 +51,7 @@ export default function Onboarding({
                   [
                     "1",
                     "AI requests a payment",
-                    "Example: “Pay 0.01 BOT for the server invoice.”",
+                    "Example: “Pay 0.01 BOT to Alice for the server invoice.”",
                   ],
                   [
                     "2",
@@ -79,8 +79,8 @@ export default function Onboarding({
                 ))}
               </div>
               <div className="mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-500/[.06] p-4 text-xs leading-5 text-emerald-800">
-                <b>BOT Testnet is active.</b> The policy engine runs locally and
-                wallet approval remains simulated in this frontend build.
+                <b>BOT Testnet is active.</b> Policy is checked against live
+                contract state, and wallet approval remains in MetaMask.
               </div>
               <MBtn onClick={onClose} className="mt-5 w-full py-3">
                 Got it — open AgentGuard

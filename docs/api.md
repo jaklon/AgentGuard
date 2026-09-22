@@ -9,19 +9,20 @@ POST /api/guard/evaluate
 Example natural-language request:
 
     {
-      "prompt": "Send 0.01 BOT to 0x2222222222222222222222222222222222222222 for the demo",
-      "policy": {
-        "wallet": "0x1111111111111111111111111111111111111111",
-        "chain_id": 968,
-        "per_transaction_limit_bot": "0.02",
-        "daily_limit_bot": "0.10",
-        "spent_today_bot": "0",
-        "expires_at": "2026-10-01T00:00:00Z",
-        "allowlist_enforced": true,
-        "allowed_recipients": ["0x2222222222222222222222222222222222222222"],
-        "paused": false
-      }
+      "wallet": "0x1111111111111111111111111111111111111111",
+      "prompt": "Send 0.01 BOT to Alice for the demo",
+      "recipient_aliases": [
+        {
+          "name": "Alice",
+          "address": "0x2222222222222222222222222222222222222222"
+        }
+      ]
     }
+
+`recipient_aliases` is optional. It lets a user refer to a saved recipient by name rather
+than typing an address. The API accepts exactly one matching recipient name, replaces it
+with the associated address before extraction, and verifies that the extracted address is
+the same one. The chain policy and contract still decide whether that address is allowed.
 
 Manual fallback replaces prompt with a manual_intent object containing action, recipient, amount_bot, chain_id, and purpose.
 
