@@ -38,7 +38,7 @@ export default function LifecycleView() {
             <Row label="Amount" value="0.01 BOT" />
             <div className="mt-6 h-32 rounded-xl bg-white/5" />
           </div>
-          <div className="absolute inset-0 grid place-items-center bg-[#f1efe8e8] p-6 backdrop-blur-sm">
+          <div className="absolute inset-0 grid place-items-center bg-[#080b0ce8] p-6 backdrop-blur-sm">
             <div className="w-full max-w-sm text-center">
               <div className="relative mx-auto h-24 w-24">
                 <motion.div

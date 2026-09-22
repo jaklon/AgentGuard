@@ -135,7 +135,7 @@ export default function BoardView() {
                       layout
                       transition={spring}
                       key={t.id}
-                      className="rounded-xl border border-black/[.12] bg-[#faf9f4] p-3"
+                      className="rounded-xl border border-white/[.12] bg-[#14191b] p-3"
                     >
                       <span
                         className={`text-[9px] font-bold tracking-widest ${t.priority === "HIGH" ? "text-rose-400" : t.priority === "MID" ? "text-amber-400" : "text-emerald-400"}`}
@@ -181,7 +181,7 @@ export default function BoardView() {
             "Core flow passes 3×",
             "Responsive QA complete",
             "No secrets in bundle",
-            "Demo rehearsal complete",
+            "Launch rehearsal complete",
           ].map((x, i) => (
             <button
               onClick={() => setDod((d) => d.map((v, j) => (i === j ? !v : v)))}

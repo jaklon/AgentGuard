@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Icon, MBtn, spring } from "../shared";
+import { BrandLogo, Icon, MBtn, spring } from "../shared";
 
 export default function Onboarding({
   open,
@@ -24,23 +24,21 @@ export default function Onboarding({
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={spring}
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-2xl overflow-hidden rounded-2xl border border-black/15 bg-[#faf9f4] text-[#101110] shadow-xl"
+            className="onboarding-panel w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-[#14191b] text-[#f4efe1] shadow-xl"
           >
-            <div className="relative border-b border-black/[.1] p-6 md:p-8">
+            <div className="relative border-b border-white/[.1] p-6 md:p-8">
               <button
                 onClick={onClose}
                 aria-label="Close guide"
-                className="absolute right-4 top-4 rounded-lg p-2 text-[#77786f] hover:bg-black/5 hover:text-black"
+                className="absolute right-4 top-4 rounded-lg p-2 text-[#8f958e] hover:bg-white/5 hover:text-white"
               >
                 <Icon name="x" />
               </button>
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-500 text-white shadow-lg shadow-indigo-500/25">
-                <Icon name="shield" size={25} />
-              </div>
+              <BrandLogo size={54} />
               <h1 className="mt-5 text-2xl font-semibold md:text-3xl">
                 What does AgentGuard do?
               </h1>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-[#55564f]">
+              <p className="mt-3 max-w-xl text-sm leading-6 text-[#a8aa9f]">
                 AgentGuard is{" "}
                 <b>a safety checkpoint for payments prepared by AI</b>. Before
                 funds move, AgentGuard checks whether the amount, purpose, and
@@ -68,7 +66,7 @@ export default function Onboarding({
                 ].map(([number, title, body]) => (
                   <div
                     key={number}
-                    className="rounded-lg border border-black/[.1] bg-black/[.025] p-4"
+                    className="rounded-lg border border-white/[.1] bg-white/[.035] p-4"
                   >
                     <span className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-500/15 text-xs font-bold text-indigo-300">
                       {number}
@@ -81,11 +79,11 @@ export default function Onboarding({
                 ))}
               </div>
               <div className="mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-500/[.06] p-4 text-xs leading-5 text-emerald-800">
-                <b>Relax, this is only a demo.</b> There is no real wallet, real
-                money, or live blockchain transaction.
+                <b>BOT Testnet is active.</b> The policy engine runs locally and
+                wallet approval remains simulated in this frontend build.
               </div>
               <MBtn onClick={onClose} className="mt-5 w-full py-3">
-                Got it — start the demo
+                Got it — open AgentGuard
               </MBtn>
             </div>
           </motion.div>

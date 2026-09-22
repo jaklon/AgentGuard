@@ -10,6 +10,7 @@ import RiskView from "./views/RiskView";
 import BoardView from "./views/BoardView";
 import Onboarding from "./components/Onboarding";
 import {
+  BrandLogo,
   Card,
   CardHeader,
   CopyBtn,
@@ -40,7 +41,6 @@ type Tab =
 const navGroups: { label: string; items: Tab[] }[] = [
   { label: "Payments", items: ["Guard"] },
   { label: "Security", items: ["Policy", "Risk", "Lifecycle", "Errors"] },
-  { label: "About the project", items: ["Architecture", "Board", "UI Kit"] },
 ];
 const mobileMain: Tab[] = ["Guard"];
 const mobileMore: Tab[] = [
@@ -48,9 +48,6 @@ const mobileMore: Tab[] = [
   "Risk",
   "Lifecycle",
   "Errors",
-  "Architecture",
-  "Board",
-  "UI Kit",
 ];
 const navLabel: Record<Tab, string> = {
   Guard: "Check Payment",
@@ -98,9 +95,7 @@ export default function App() {
           onClick={() => setTab("Guard")}
           className="dashboard-brand flex h-[84px] items-center gap-3 px-6 text-left"
         >
-          <span className="dashboard-brand-mark grid h-10 w-10 place-items-center rounded-full">
-            <Icon name="shield" size={20} />
-          </span>
+          <BrandLogo size={42} />
           <span>
             <b className="block text-sm tracking-tight">AgentGuard</b>
             <span className="text-[9px] uppercase tracking-[.12em] text-slate-600">
@@ -129,7 +124,7 @@ export default function App() {
         </nav>
         <div className="dashboard-sidebar-foot p-5">
           <div className="mb-3 flex items-center justify-between text-[10px]">
-            <span className="text-slate-600">Demo network</span>
+            <span className="text-slate-600">Network</span>
             <span className="flex items-center gap-1.5 font-semibold text-amber-300">
               <i className="h-1.5 w-1.5 rounded-full bg-amber-400" />
               BOT Testnet
@@ -150,9 +145,7 @@ export default function App() {
             onClick={() => setTab("Guard")}
             className="flex items-center gap-2 lg:hidden"
           >
-            <span className="dashboard-brand-mark grid h-8 w-8 place-items-center rounded-full">
-              <Icon name="shield" size={17} />
-            </span>
+            <BrandLogo size={34} />
             <b className="text-sm">AgentGuard</b>
           </button>
           <div className="hidden lg:block">
@@ -278,13 +271,13 @@ function NavItem({
     <motion.button
       onClick={onClick}
       animate={{
-        color: active ? "#101110" : "#77786f",
-        backgroundColor: active ? "rgba(80,70,229,.11)" : "rgba(0,0,0,0)",
+        color: active ? "#f4efe1" : "#8f958e",
+        backgroundColor: active ? "rgba(214,195,140,.12)" : "rgba(0,0,0,0)",
       }}
       className="dashboard-nav-item flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium"
     >
       <span
-        className={`h-1.5 w-1.5 rounded-full ${active ? "bg-[#5046e5]" : "bg-black/20"}`}
+        className={`h-1.5 w-1.5 rounded-full ${active ? "bg-[#d6c38c]" : "bg-white/20"}`}
       />
       {label}
     </motion.button>
@@ -302,10 +295,10 @@ function MobileNav({
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-2 py-2 text-[10px] font-semibold ${active ? "bg-[#5046e5] text-white" : "text-[#66675f]"}`}
+      className={`rounded-lg px-2 py-2 text-[10px] font-semibold ${active ? "bg-[#d6c38c] text-[#090c0d]" : "text-[#9ba099]"}`}
     >
       <span
-        className={`mx-auto mb-1 block h-1 w-4 rounded-full ${active ? "bg-[#b9f54a]" : "bg-transparent"}`}
+        className={`mx-auto mb-1 block h-1 w-4 rounded-full ${active ? "bg-[#090c0d]" : "bg-transparent"}`}
       />
       {label}
     </button>
@@ -443,12 +436,12 @@ function Manual() {
           {sending ? (
             <>
               <Spinner />
-              Waiting for demo approval…
+              Waiting for wallet approval…
             </>
           ) : done ? (
             <>
               <Icon name="check" />
-              Demo payment approved
+              Payment approved
             </>
           ) : (
             "Review and continue"
@@ -489,7 +482,7 @@ function Receipt() {
           </motion.div>
           <h1 className="mt-4 text-2xl font-semibold">Payment confirmed</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Simulation completed on BOT Chain Testnet in 9.8 seconds.
+            Testnet receipt prepared in 9.8 seconds.
           </p>
         </div>
         <Divider />
@@ -517,7 +510,7 @@ function Architecture() {
   const layers = [
     [
       "L1 · USER",
-      "Local demo user",
+      "Local operator",
       "Simulated intent and approval flow",
       "#6366f1",
     ],
