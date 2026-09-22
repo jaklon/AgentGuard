@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { connectWallet, getPublicConfig, policyOf, setPolicy, setRecipient, setWalletPaused, type Policy, type PublicConfig } from "../lib/botchain";
 import { loadRecipients, removeRecipient, saveRecipient } from "../lib/recipients";
-import { Card, Divider, Icon, Label, MBtn, Mono, Row, Spinner, fadeUp } from "../shared";
+import { Card, Divider, Icon, Label, MBtn, Mono, Row, Spinner, fadeUp, short } from "../shared";
 import { motion } from "framer-motion";
 
 export default function LivePolicyView() {
@@ -96,7 +96,7 @@ export default function LivePolicyView() {
         <Divider />
         <div className="flex items-center justify-between"><div><h3 className="text-sm font-semibold">Wallet pause</h3><p className="text-xs text-slate-500">Immediately blocks this wallet’s payments.</p></div><MBtn variant={policy?.paused ? "approve" : "danger"} onClick={togglePause} disabled={!policy || busy}>{policy?.paused ? "Unpause" : "Pause"}</MBtn></div>
       </Card>
-      <Card className="h-fit p-5"><h2 className="text-lg font-semibold">Live contract</h2><Divider /><Row label="Wallet" value={<Mono>{wallet || "—"}</Mono>} /><Row label="Contract" value={<Mono>{config?.contract_address || "Loading…"}</Mono>} /><Row label="Network" value="BOT Testnet · 968" />{policy && <><Row label="Policy status" value={policy.paused ? "Paused" : "Active"} /><Row label="Expiry" value={policy.expires_at ? new Date(policy.expires_at).toLocaleDateString() : "—"} /></>}{transaction && config && <a className="mt-4 block text-xs text-indigo-300 underline" target="_blank" rel="noreferrer" href={config.explorer_url + "/tx/" + transaction}>View submitted transaction</a>}</Card>
+      <Card className="h-fit p-5"><h2 className="text-lg font-semibold">Live contract</h2><Divider /><Row label="Wallet" value={<Mono>{wallet ? short(wallet) : "—"}</Mono>} copy={wallet || undefined} /><Row label="Contract" value={<span title={config?.contract_address}><Mono>{config ? short(config.contract_address) : "Loading…"}</Mono></span>} copy={config?.contract_address} /><Row label="Network" value="BOT Testnet · 968" />{policy && <><Row label="Policy status" value={policy.paused ? "Paused" : "Active"} /><Row label="Expiry" value={policy.expires_at ? new Date(policy.expires_at).toLocaleDateString() : "—"} /></>}{transaction && config && <a className="mt-4 block text-xs text-indigo-300 underline" target="_blank" rel="noreferrer" href={config.explorer_url + "/tx/" + transaction}>View submitted transaction</a>}</Card>
     </div>
   </motion.div>;
 }
