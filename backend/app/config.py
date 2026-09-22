@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -31,10 +31,11 @@ class Settings(BaseSettings):
     botchain_contract_address: str = ""
     botchain_allocation_wallet: str = "0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91"
 
-    ai_provider: str = "openai"
-    ai_model: str = "gpt-5-mini"
+    ai_provider: Literal["openai", "llama_cpp", "disabled"] = "llama_cpp"
+    ai_model: str = "Qwen3-4B-Instruct-2507-Q4_K_M.gguf"
     openai_api_key: str = ""
-    model_timeout_seconds: float = Field(default=15, ge=1, le=60)
+    local_llm_base_url: str = "http://llm:8080"
+    model_timeout_seconds: float = Field(default=60, ge=1, le=180)
 
     @property
     def allowed_origins(self) -> list[str]:
@@ -48,6 +49,8 @@ class Settings(BaseSettings):
             raise ValueError("BOTCHAIN_CONTRACT_ADDRESS is required in production")
         if not self.allowed_origins or any(not origin.startswith("https://") for origin in self.allowed_origins):
             raise ValueError("production CORS origins must be HTTPS")
+        if self.ai_provider == "llama_cpp" and not self.local_llm_base_url.startswith(("http://", "https://")):
+            raise ValueError("LOCAL_LLM_BASE_URL must be an HTTP(S) URL")
         return self
 
 

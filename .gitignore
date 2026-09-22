@@ -29,6 +29,7 @@ frontend/playwright.config.d.ts
 frontend/playwright-report/
 frontend/test-results/
 backend/data/
+models/
 *.db
 *.db-shm
 *.db-wal
