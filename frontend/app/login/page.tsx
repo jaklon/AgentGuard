@@ -29,6 +29,27 @@ export default function LoginPage() {
         duration: 800,
         ease: "out(3)",
       });
+
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        animate(".orbit-a", {
+          rotate: [0, 360],
+          duration: 6800,
+          loop: true,
+          ease: "linear",
+        });
+        animate(".orbit-b", {
+          rotate: [132, -228],
+          duration: 9200,
+          loop: true,
+          ease: "linear",
+        });
+        animate(".orbit-c", {
+          rotate: [238, 598],
+          duration: 5200,
+          loop: true,
+          ease: "linear",
+        });
+      }
     });
     return () => scope.current?.revert();
   }, []);
@@ -73,9 +94,15 @@ export default function LoginPage() {
 
       <section className="login-panel">
         <div className="login-orbit" aria-hidden="true">
-          <span className="login-orbit-dot dot-a" />
-          <span className="login-orbit-dot dot-b" />
-          <span className="login-orbit-dot dot-c" />
+          <span className="login-orbit-track orbit-a">
+            <i className="login-orbit-dot dot-a" />
+          </span>
+          <span className="login-orbit-track orbit-b">
+            <i className="login-orbit-dot dot-b" />
+          </span>
+          <span className="login-orbit-track orbit-c">
+            <i className="login-orbit-dot dot-c" />
+          </span>
           <div className="login-orbit-core">✓</div>
         </div>
         <div className="login-reveal login-panel-copy">

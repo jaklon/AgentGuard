@@ -32,7 +32,7 @@ import { enableNotifications, notificationsEnabled, notifyTransaction } from "..
 import { loadRecipients, type SavedRecipient } from "../lib/recipients";
 import { loadTemplates, removeTemplate, saveTemplate, type PaymentTemplate } from "../lib/templates";
 import { recoveryIssue, type RecoveryIssue } from "../lib/recovery";
-import { Card, CopyBtn, Divider, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp, short } from "../shared";
+import { BrandLogo, Card, CopyBtn, Divider, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp, short } from "../shared";
 
 type BusyState = "" | "connect" | "check" | "approve";
 
@@ -276,6 +276,7 @@ export default function LiveDashboardView({
 
   return <motion.div {...fadeUp} className="guard-home">
     <section className="guard-hero mb-8 pb-9">
+      <div className="guard-hero-logo" aria-hidden="true"><BrandLogo size={160} /></div>
       <p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-300">Live BOT Testnet · Chain 968</p>
       <h1 className="guard-title mt-4 font-semibold leading-[.93] tracking-[-.055em]">Check before funds move.</h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-slate-400">Describe, preview, and approve a policy-protected payment. Only your wallet can sign.</p>

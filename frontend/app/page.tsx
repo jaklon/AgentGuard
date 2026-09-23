@@ -105,7 +105,7 @@ export default function IntroductionPage() {
       </div>
       <nav data-intro-nav className="intro-nav">
         <Link href="/" className="intro-brand" aria-label="AgentGuard home">
-          <BrandLogo size={36} />
+          <BrandLogo size={42} />
           <span>AgentGuard</span>
         </Link>
         <div className="intro-nav-right">
@@ -233,11 +233,12 @@ export default function IntroductionPage() {
               "Return control",
               "ALLOW, REVIEW, or BLOCK—the human still makes the final call.",
             ],
-          ].map(([number, title, copy]) => (
+          ].map(([number, title, copy], index) => (
             <article key={number} data-reveal>
               <span>{number}</span>
               <h3>{title}</h3>
               <p>{copy}</p>
+              <FlowMockup type={index} />
             </article>
           ))}
         </div>
@@ -310,6 +311,35 @@ export default function IntroductionPage() {
         <span>BOT Chain Testnet · Human approval required · <a href="/legal/reown-community-license.txt" target="_blank" rel="noreferrer">Reown notice</a></span>
       </footer>
     </main>
+  );
+}
+
+function FlowMockup({ type }: { type: number }) {
+  if (type === 0) {
+    return (
+      <div className="intro-flow-mockup mockup-intent" aria-hidden="true">
+        <span>PAYMENT REQUEST</span>
+        <strong>0.01 BOT</strong>
+        <i>0x3A9…c76A</i>
+        <small>server invoice</small>
+      </div>
+    );
+  }
+  if (type === 1) {
+    return (
+      <div className="intro-flow-mockup mockup-policy" aria-hidden="true">
+        <span><i /> Amount within limit</span>
+        <span><i /> Recipient verified</span>
+        <span><i /> Daily allowance ready</span>
+      </div>
+    );
+  }
+  return (
+    <div className="intro-flow-mockup mockup-decision" aria-hidden="true">
+      <span>GUARD DECISION</span>
+      <strong><i /> ALLOW</strong>
+      <small>Human approval required</small>
+    </div>
   );
 }
 
