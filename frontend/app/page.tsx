@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { BrandLogo } from "../src/shared";
 
 export default function IntroductionPage() {
   const root = useRef<HTMLElement>(null);
+  const [activeFlow, setActiveFlow] = useState(0);
 
   useLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
@@ -216,31 +218,68 @@ export default function IntroductionPage() {
             <small>Risk score · 12/100</small>
           </article>
         </div>
-        <div className="intro-flow-list">
+        <div className="intro-flow-index" data-reveal>
+          <div className="intro-flow-index-head">
+            <span>CHECKPOINT SEQUENCE</span>
+            <span>HOVER OR TAP TO INSPECT</span>
+          </div>
           {[
             [
               "01",
+              "INTENT PARSING",
               "Read the intent",
-              "Amount, recipient, network, and purpose become clear structured data.",
+              "Turn a natural-language request into a clear payment instruction.",
             ],
             [
               "02",
+              "POLICY CHECK",
               "Test the policy",
-              "Transaction limits, daily usage, and trusted recipients are checked.",
+              "Compare the amount, recipient, and daily usage against live limits.",
             ],
             [
               "03",
+              "HUMAN CONTROL",
               "Return control",
-              "ALLOW, REVIEW, or BLOCK—the human still makes the final call.",
+              "Show the risk and reasoning before the wallet can approve anything.",
             ],
-          ].map(([number, title, copy], index) => (
-            <article key={number} data-reveal>
-              <span>{number}</span>
-              <h3>{title}</h3>
-              <p>{copy}</p>
-              <FlowMockup type={index} />
-            </article>
-          ))}
+          ].map(([number, label, title, copy], index) => {
+            const active = activeFlow === index;
+            return (
+              <motion.button
+                layout
+                type="button"
+                key={number}
+                className={`intro-flow-row ${active ? "is-active" : ""}`}
+                onMouseEnter={() => setActiveFlow(index)}
+                onFocus={() => setActiveFlow(index)}
+                onClick={() => setActiveFlow(index)}
+                aria-expanded={active}
+                transition={{ layout: { type: "spring", stiffness: 260, damping: 28 } }}
+              >
+                <span className="intro-flow-number">{number}</span>
+                <span className="intro-flow-copy">
+                  <span className="intro-flow-label">{label}</span>
+                  <strong>{title}</strong>
+                  <span className="intro-flow-description">{copy}</span>
+                </span>
+                <AnimatePresence initial={false} mode="popLayout">
+                  {active && (
+                    <motion.span
+                      key={number}
+                      className="intro-flow-preview"
+                      initial={{ opacity: 0, scale: 0.9, rotate: -3 }}
+                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                      exit={{ opacity: 0, scale: 0.94 }}
+                      transition={{ type: "spring", stiffness: 220, damping: 24 }}
+                    >
+                      <FlowMockup type={index} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <span className="intro-flow-arrow" aria-hidden="true">→</span>
+              </motion.button>
+            );
+          })}
         </div>
       </section>
 
@@ -317,29 +356,31 @@ export default function IntroductionPage() {
 function FlowMockup({ type }: { type: number }) {
   if (type === 0) {
     return (
-      <div className="intro-flow-mockup mockup-intent" aria-hidden="true">
-        <span>PAYMENT REQUEST</span>
-        <strong>0.01 BOT</strong>
-        <i>0x3A9…c76A</i>
-        <small>server invoice</small>
-      </div>
+      <span className="intro-flow-mockup mockup-intent" aria-hidden="true">
+        <span className="mockup-bar"><BrandLogo size={28} /><b>INTENT / PARSED</b><i>01</i></span>
+        <span className="mockup-command">Send <b>0.01 BOT</b> for the server invoice.</span>
+        <span className="mockup-data"><i>RECIPIENT</i><b>0x3A9…c76A</b></span>
+        <span className="mockup-data"><i>NETWORK</i><b>BOT · 968</b></span>
+      </span>
     );
   }
   if (type === 1) {
     return (
-      <div className="intro-flow-mockup mockup-policy" aria-hidden="true">
-        <span><i /> Amount within limit</span>
+      <span className="intro-flow-mockup mockup-policy" aria-hidden="true">
+        <span className="mockup-bar"><BrandLogo size={28} /><b>POLICY / LIVE</b><i>02</i></span>
+        <span><i /> Amount within 0.02 BOT limit</span>
         <span><i /> Recipient verified</span>
-        <span><i /> Daily allowance ready</span>
-      </div>
+        <span><i /> Daily allowance available</span>
+        <small>3 / 3 CHECKS PASSED</small>
+      </span>
     );
   }
   return (
-    <div className="intro-flow-mockup mockup-decision" aria-hidden="true">
-      <span>GUARD DECISION</span>
-      <strong><i /> ALLOW</strong>
-      <small>Human approval required</small>
-    </div>
+    <span className="intro-flow-mockup mockup-decision" aria-hidden="true">
+      <span className="mockup-bar"><BrandLogo size={28} /><b>DECISION / READY</b><i>03</i></span>
+      <span className="mockup-score"><strong><i /> ALLOW</strong><b>12 / 100 RISK</b></span>
+      <span className="mockup-approval">AWAITING HUMAN APPROVAL <i>→</i></span>
+    </span>
   );
 }
 
