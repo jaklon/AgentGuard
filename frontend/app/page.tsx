@@ -164,11 +164,18 @@ export default function IntroductionPage() {
             <i /> HUMAN <b>IN CONTROL</b>
           </div>
           <svg
-            className="intro-path"
+            className="intro-path intro-path-desktop"
             viewBox="0 0 1000 260"
             preserveAspectRatio="none"
           >
             <path data-flow-path d="M90 130 C300 20 370 235 510 130 S740 50 910 130" />
+          </svg>
+          <svg
+            className="intro-path intro-path-mobile"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <path data-flow-path d="M27 22 C27 36 50 35 50 50 S74 64 74 78" />
           </svg>
         </div>
       </section>

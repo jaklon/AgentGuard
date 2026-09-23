@@ -264,6 +264,10 @@ html {
   stroke: var(--cobalt);
   stroke-width: 2;
   stroke-dasharray: 8 8;
+  vector-effect: non-scaling-stroke;
+}
+.intro-path-mobile {
+  display: none;
 }
 .intro-statement {
   padding: clamp(110px, 15vw, 220px) clamp(22px, 9vw, 150px);
@@ -943,6 +947,15 @@ html {
 }
 
 @media (max-width: 850px) {
+  .intro-progress {
+    display: none;
+  }
+  .intro-path-desktop {
+    display: none;
+  }
+  .intro-path-mobile {
+    display: block;
+  }
   .intro-nav {
     height: 70px;
   }
