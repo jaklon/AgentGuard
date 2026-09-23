@@ -31,6 +31,7 @@ import { WalletConnectionButtons } from "../components/WalletConnectionButtons";
 import { enableNotifications, notificationsEnabled, notifyTransaction } from "../lib/notifications";
 import { loadRecipients, type SavedRecipient } from "../lib/recipients";
 import { loadTemplates, removeTemplate, saveTemplate, type PaymentTemplate } from "../lib/templates";
+import { recoveryIssue, type RecoveryIssue } from "../lib/recovery";
 import { Card, CopyBtn, Divider, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp, short } from "../shared";
 
 type BusyState = "" | "connect" | "check" | "approve";
@@ -38,9 +39,15 @@ type BusyState = "" | "connect" | "check" | "approve";
 export default function LiveDashboardView({
   onEvaluation,
   onTransaction,
+  onIssue,
+  retryEvaluation,
+  onRetryLoaded,
 }: {
   onEvaluation: (activity: EvaluationActivity) => void;
   onTransaction: (activity: TransactionActivity) => void;
+  onIssue: (issue: RecoveryIssue | null) => void;
+  retryEvaluation: EvaluationActivity | null;
+  onRetryLoaded: () => void;
 }) {
   const [config, setConfig] = useState<PublicConfig | null>(null);
   const [wallet, setWallet] = useState("");
@@ -75,6 +82,11 @@ export default function LiveDashboardView({
     if (isAddress(recipient) && isValidBotAmount(amount)) {
       setPrompt(`Send ${amount} BOT to ${recipient}${purpose ? ` for ${purpose}` : ""}`);
       setRequestName((params.get("name") || "Shared payment request").slice(0, 64));
+    } else if (retryEvaluation?.decision.intent) {
+      const intent = retryEvaluation.decision.intent;
+      setPrompt(`Send ${intent.amount_bot} BOT to ${intent.recipient}${intent.purpose ? ` for ${intent.purpose}` : ""}`);
+      setRequestName("Recovered payment");
+      onRetryLoaded();
     }
   }, []);
 
@@ -137,6 +149,7 @@ export default function LiveDashboardView({
     setBusy("connect"); setError("");
     try {
       const connection = await connectWallet(config, mode);
+      onIssue(null);
       selectedWallet.current = connection.account;
       setWallet(connection.account);
       setWalletProvider(connection.provider);
@@ -144,7 +157,7 @@ export default function LiveDashboardView({
       clearWalletData();
       await refreshWallet(connection.account);
     } catch (reason) {
-      setError(message(reason)); clearWalletData();
+      setError(message(reason)); onIssue(recoveryIssue(reason)); clearWalletData();
     } finally {
       setBusy("");
     }
@@ -158,6 +171,7 @@ export default function LiveDashboardView({
     setBusy("check"); setError(""); setSaved(""); setDecision(null); setPreview(null); setReceipt(null);
     try {
       const nextDecision = await evaluatePayment(account, paymentPrompt, recipients);
+      onIssue(null);
       if (version !== evaluationVersion.current || selectedWallet.current.toLowerCase() !== account.toLowerCase()) return;
       const nextHash = newIntentHash();
       setDecision(nextDecision); setIntentHash(nextHash);
@@ -167,7 +181,7 @@ export default function LiveDashboardView({
         if (version === evaluationVersion.current && selectedWallet.current.toLowerCase() === account.toLowerCase()) setPreview(nextPreview);
       }
     } catch (reason) {
-      setError(message(reason));
+      setError(message(reason)); onIssue(recoveryIssue(reason));
     } finally {
       setBusy("");
     }
@@ -186,6 +200,7 @@ export default function LiveDashboardView({
       if (!simulation.allowed) throw new Error(simulation.reason);
       if (version !== evaluationVersion.current || selectedWallet.current.toLowerCase() !== account.toLowerCase()) throw new Error("Wallet or payment details changed. Run the safety check again.");
       const hash = await executePayment(config, walletProvider, account, decision.intent.recipient, decision.intent.amount_bot, intentHash);
+      onIssue(null);
       const transaction: TransactionActivity = {
         wallet: account,
         transaction_hash: hash,
@@ -210,7 +225,7 @@ export default function LiveDashboardView({
         await new Promise((resolve) => setTimeout(resolve, 2500));
       }
     } catch (reason) {
-      setError(message(reason));
+      setError(message(reason)); onIssue(recoveryIssue(reason));
     } finally {
       setBusy("");
     }

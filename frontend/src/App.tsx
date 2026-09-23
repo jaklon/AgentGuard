@@ -13,6 +13,7 @@ import HistoryView from "./views/HistoryView";
 import PaymentRequestView from "./views/PaymentRequestView";
 import Onboarding from "./components/Onboarding";
 import { EMPTY_ACTIVITY, clearActivity, loadActivity, saveActivity, type ActivityState, type EvaluationActivity, type TransactionActivity } from "./lib/activity";
+import type { RecoveryIssue } from "./lib/recovery";
 import {
   BrandLogo,
   Card,
@@ -76,6 +77,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("Guard"),
     [open, setOpen] = useState(false),
     [guide, setGuide] = useState(false),
+    [recoveryIssue, setRecoveryIssue] = useState<RecoveryIssue | null>(null),
+    [retryEvaluation, setRetryEvaluation] = useState<EvaluationActivity | null>(null),
     [activity, setActivity] = useState<ActivityState>(EMPTY_ACTIVITY);
   useEffect(() => {
     setGuide(localStorage.getItem("agentguard-guide-seen") !== "1");
@@ -93,13 +96,13 @@ export default function App() {
   }, []);
 
   const View: Record<Tab, ReactNode> = {
-    Guard: <DashboardView onEvaluation={recordEvaluation} onTransaction={recordTransaction} />,
+    Guard: <DashboardView onEvaluation={recordEvaluation} onTransaction={recordTransaction} onIssue={setRecoveryIssue} retryEvaluation={retryEvaluation} onRetryLoaded={() => setRetryEvaluation(null)} />,
     Request: <PaymentRequestView />,
     History: <HistoryView latest={activity.transaction} />,
     Assistant: <AssistantView />,
     Manual: <Manual />,
     Receipt: <Receipt />,
-    Errors: <ErrorsView />,
+    Errors: <ErrorsView evaluation={activity.evaluation} latestIssue={recoveryIssue} onRetryPayment={() => { setRetryEvaluation(activity.evaluation); setTab("Guard"); }} />,
     Lifecycle: <LifecycleView evaluation={activity.evaluation} transaction={activity.transaction} onTransaction={recordTransaction} />,
     Policy: <PolicyView />,
     Risk: <RiskView evaluation={activity.evaluation} />,

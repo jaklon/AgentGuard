@@ -31,6 +31,8 @@ export type PaymentHistoryItem = { transaction_hash: string; block_number: numbe
 export type RecipientPaymentSummary = { recipient: string; payment_count: number; total_amount_bot: string; };
 export type PaymentHistory = { wallet: string; total_count: number; total_spent_bot: string; recipient_summaries: RecipientPaymentSummary[]; items: PaymentHistoryItem[]; };
 export type WalletReadiness = { wallet: string; balance_bot: string; chain_id: number; bundler_available: boolean; gasless_available: boolean; entry_point: string; faucet_url: string; };
+export type ComponentHealth = { status: "ok" | "error" | "fallback" | string; detail: string | null; };
+export type HealthStatus = { status: "ok" | "degraded" | string; app_env: string; database: ComponentHealth; ai_provider: ComponentHealth; botchain_rpc: ComponentHealth; };
 export type RecipientAlias = { name: string; address: string; };
 
 type WalletConnectProvider = Eip1193Provider & {
@@ -107,6 +109,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const getPublicConfig = () => api<PublicConfig>("/api/config");
+export const getHealth = () => api<HealthStatus>("/api/health");
 export const policyOf = (wallet: string) => api<Policy>("/api/botchain/policy/" + wallet);
 
 export async function connectWallet(
