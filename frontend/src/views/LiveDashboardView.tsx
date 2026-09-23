@@ -277,7 +277,16 @@ export default function LiveDashboardView({
           <ReadinessItem label={readiness ? `${trimAmount(readiness.balance_bot)} BOT available` : "Checking balance"} ready={Number(readiness?.balance_bot || 0) > 0} />
           <ReadinessItem label={policy?.paused ? "Safety Policy paused" : "Safety Policy active"} ready={Boolean(policy && !policy.paused)} />
           <ReadinessItem label={recipients.length ? `${recipients.length} trusted recipient${recipients.length > 1 ? "s" : ""}` : "No named recipients"} ready={recipients.length > 0} />
-          <ReadinessItem label={readiness?.gasless_available ? "Gas sponsorship active" : readiness?.bundler_available ? "Smart-wallet bundler ready" : "Bundler unavailable"} ready={Boolean(readiness?.bundler_available)} warn={Boolean(readiness?.bundler_available && !readiness?.gasless_available)} />
+          <ReadinessItem
+            label={readiness?.gasless_available ? "Gas sponsorship active" : readiness?.bundler_available ? "Smart-wallet bundler ready" : "Bundler unavailable"}
+            description={readiness?.gasless_available
+              ? "Supported smart-wallet transactions can use sponsored network fees."
+              : readiness?.bundler_available
+                ? "Bundler is available, but gas sponsorship is inactive. Your wallet still pays gas in BOT."
+                : "Standard wallet payments still work, but smart-wallet routing is unavailable."}
+            ready={Boolean(readiness?.bundler_available)}
+            warn={Boolean(readiness?.bundler_available && !readiness?.gasless_available)}
+          />
         </div>}
         {readiness && Number(readiness.balance_bot) <= 0.001 && <a href={readiness.faucet_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs font-semibold text-amber-200">Get test BOT <Icon name="arrow" size={14} /></a>}
         {wallet && !notifications && <button onClick={() => void turnOnNotifications()} className="mt-4 w-full rounded-lg border border-white/[.1] px-3 py-2 text-left text-xs text-slate-400 hover:text-white">Enable confirmation notifications</button>}
@@ -325,8 +334,15 @@ export default function LiveDashboardView({
   </motion.div>;
 }
 
-function ReadinessItem({ label, ready, warn = false }: { label: string; ready: boolean; warn?: boolean }) {
-  return <div className="flex items-center justify-between rounded-lg bg-white/[.035] px-3 py-2 text-xs"><span className="text-slate-400">{label}</span><span className={ready ? warn ? "text-amber-300" : "text-emerald-300" : "text-rose-300"}><Icon name={ready ? warn ? "warning" : "check" : "x"} size={14} /></span></div>;
+function ReadinessItem({ label, ready, warn = false, description }: { label: string; ready: boolean; warn?: boolean; description?: string }) {
+  const statusLabel = ready ? warn ? "Available with limitations" : "Ready" : "Unavailable";
+  return <div className="flex items-start justify-between gap-3 rounded-lg bg-white/[.035] px-3 py-2 text-xs">
+    <span className="min-w-0 text-slate-400">
+      <span className="block">{label}</span>
+      {description && <span className="mt-1 block text-[10px] leading-4 text-slate-500">{description}</span>}
+    </span>
+    <span aria-label={statusLabel} title={statusLabel} className={`mt-0.5 shrink-0 ${ready ? warn ? "text-amber-300" : "text-emerald-300" : "text-rose-300"}`}><Icon name={ready ? warn ? "warning" : "check" : "x"} size={14} /></span>
+  </div>;
 }
 
 function PreviewCard({ preview, amount }: { preview: SimulationPreview; amount: string }) {
