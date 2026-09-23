@@ -252,6 +252,11 @@ button:disabled {
   color: #9da39c;
 }
 
+.onboarding-panel {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
+}
+
 /* Main guard screen */
 .guard-hero {
   position: relative;

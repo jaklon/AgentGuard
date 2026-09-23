@@ -1,4 +1,7 @@
+"use client";
+
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect } from "react";
 import { BrandLogo, Icon, MBtn, spring } from "../shared";
 
 export default function Onboarding({
@@ -8,6 +11,23 @@ export default function Onboarding({
   open: boolean;
   onClose: () => void;
 }) {
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open, onClose]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -15,7 +35,7 @@ export default function Onboarding({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] grid place-items-center bg-[#050810d9] p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto overscroll-contain bg-[#050810d9] p-4 backdrop-blur-md touch-pan-y"
           onClick={onClose}
         >
           <motion.div
@@ -24,7 +44,10 @@ export default function Onboarding({
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             transition={spring}
             onClick={(event) => event.stopPropagation()}
-            className="onboarding-panel w-full max-w-2xl overflow-hidden rounded-2xl border border-white/10 bg-[#14191b] text-[#f4efe1] shadow-xl"
+            className="onboarding-panel my-auto max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#14191b] text-[#f4efe1] shadow-xl touch-pan-y"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="onboarding-title"
           >
             <div className="relative border-b border-white/[.1] p-6 md:p-8">
               <button
@@ -35,7 +58,7 @@ export default function Onboarding({
                 <Icon name="x" />
               </button>
               <BrandLogo size={54} />
-              <h1 className="mt-5 text-2xl font-semibold md:text-3xl">
+              <h1 id="onboarding-title" className="mt-5 text-2xl font-semibold md:text-3xl">
                 What does AgentGuard do?
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-[#a8aa9f]">
