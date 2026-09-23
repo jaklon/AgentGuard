@@ -259,21 +259,18 @@ button:disabled {
   border-bottom: 1px solid var(--dash-line);
 }
 
-.guard-hero::after {
+.guard-hero > .guard-hero-logo {
   position: absolute;
   z-index: 0;
-  top: -42px;
-  right: 0;
-  content: "01";
-  color: rgba(80, 70, 229, 0.09);
-  font-size: clamp(100px, 15vw, 220px);
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.08em;
+  top: -30px;
+  right: clamp(0px, 3vw, 40px);
+  opacity: 0.12;
+  filter: saturate(0.8);
   pointer-events: none;
 }
 
-.guard-hero > div {
+.guard-hero > p,
+.guard-hero > h1 {
   position: relative;
   z-index: 1;
 }

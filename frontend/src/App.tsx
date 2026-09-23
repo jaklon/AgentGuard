@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import DashboardView from "./views/LiveDashboardView";
 import ErrorsView from "./views/ErrorsView";
@@ -130,6 +131,12 @@ export default function App() {
               BOT Testnet
             </span>
           </div>
+          <Link
+            href="/"
+            className="mb-2 flex w-full items-center gap-2 rounded-lg border border-white/[.07] px-3 py-2 text-xs text-slate-400 hover:bg-white/[.03] hover:text-white"
+          >
+            <span aria-hidden="true">←</span> Back to Home
+          </Link>
           <button
             onClick={() => setGuide(true)}
             className="w-full rounded-lg border border-white/[.07] px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/[.03] hover:text-white"
@@ -242,6 +249,12 @@ export default function App() {
                   }}
                 />
               ))}
+              <Link
+                href="/"
+                className="mt-2 flex w-full items-center gap-2 rounded-lg border border-white/[.07] px-3 py-3 text-left text-xs text-slate-400"
+              >
+                <span aria-hidden="true">←</span> Back to Home
+              </Link>
               <button
                 onClick={() => {
                   setGuide(true);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, connectWallet, ensureBotTestnet, evaluatePayment, executePayment, getPublicConfig, newIntentHash, policyOf, simulatePayment, type GuardDecision, type Policy, type PublicConfig } from "../lib/botchain";
-import { Card, Divider, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp } from "../shared";
+import { BrandLogo, Card, Divider, Icon, MBtn, Mono, Pill, Row, Spinner, fadeUp } from "../shared";
 import { motion } from "framer-motion";
 
 type Receipt = { status: "pending" | "confirmed" | "reverted"; explorer_url: string };
@@ -49,7 +49,7 @@ export default function LiveDashboardView() {
   }
   const allow = decision?.decision === "ALLOW" && decision.intent;
   return <motion.div {...fadeUp} className="guard-home">
-    <section className="guard-hero mb-8 pb-9"><p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-300">Live BOT Testnet · Chain 968</p><h1 className="guard-title mt-4 font-semibold leading-[.93] tracking-[-.055em]">Check before funds move.</h1><p className="mt-5 max-w-2xl text-base leading-7 text-slate-400">Policy comes from the contract. Only your wallet signs payments.</p></section>
+    <section className="guard-hero mb-8 pb-9"><div className="guard-hero-logo" aria-hidden="true"><BrandLogo size={160} /></div><p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-300">Live BOT Testnet · Chain 968</p><h1 className="guard-title mt-4 font-semibold leading-[.93] tracking-[-.055em]">Check before funds move.</h1><p className="mt-5 max-w-2xl text-base leading-7 text-slate-400">Policy comes from the contract. Only your wallet signs payments.</p></section>
     {error && <Notice error>{error}</Notice>}
     <div className="grid gap-7 lg:grid-cols-[310px_1fr]">
       <Card className="h-fit p-6"><p className="text-xs font-bold uppercase tracking-wider text-indigo-400">Wallet</p><h2 className="mt-2 text-lg font-semibold">{wallet ? short(wallet) : "Not connected"}</h2><MBtn className="mt-5 w-full" onClick={connect} disabled={!config || busy}>{busy ? <><Spinner />Connecting…</> : <><Icon name="wallet" />Connect MetaMask</>}</MBtn><Divider />{policy ? <><Row label="Per transaction" value={<Mono>{policy.per_transaction_limit_bot} BOT</Mono>} /><Row label="Daily limit" value={<Mono>{policy.daily_limit_bot} BOT</Mono>} /><Row label="Spent today" value={<Mono>{policy.spent_today_bot} BOT</Mono>} /><Row label="Allowlist" value={policy.allowlist_enforced ? policy.allowed_recipients.length + " recipients" : "Disabled"} /><Row label="Status" value={policy.paused ? "Paused" : "Active"} /></> : <p className="text-xs leading-5 text-slate-500">Create a policy in Safety Policy before paying.</p>}{config && <><Divider /><a className="text-xs text-indigo-300 underline" target="_blank" rel="noreferrer" href={config.explorer_url + "/address/" + config.contract_address}>View contract on BOTScan</a></>}</Card>

@@ -54,6 +54,9 @@ html {
   font-weight: 750;
   letter-spacing: -0.02em;
 }
+.intro-brand .brand-logo-crop {
+  box-shadow: 0 0 0 1px rgba(214, 195, 140, 0.28);
+}
 .guard-mark {
   width: 27px;
   height: 30px;
@@ -397,8 +400,8 @@ html {
 }
 .intro-flow-list article {
   display: grid;
-  grid-template-columns: 90px 1fr 1.4fr;
-  gap: 30px;
+  grid-template-columns: 48px minmax(130px, 0.8fr) minmax(210px, 1.25fr) minmax(190px, 0.85fr);
+  gap: clamp(14px, 2vw, 30px);
   align-items: start;
   padding: 32px 0;
   border-bottom: 1px solid var(--line);
@@ -419,6 +422,62 @@ html {
   line-height: 1.65;
   font-size: 14px;
   max-width: 550px;
+}
+.intro-flow-mockup {
+  min-height: 128px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  box-shadow: 8px 8px 0 rgba(4, 6, 7, 0.45);
+}
+.mockup-intent {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 18px;
+}
+.mockup-intent span,
+.mockup-intent small,
+.mockup-decision > span,
+.mockup-decision small {
+  color: #858b85;
+  font: 600 8px var(--font-mono), monospace;
+  letter-spacing: 0.1em;
+}
+.mockup-intent strong { font-size: 15px; color: var(--lime); }
+.mockup-intent i { grid-column: 1 / -1; font: 500 9px var(--font-mono), monospace; color: #b8bcb5; }
+.mockup-intent small { grid-column: 1 / -1; align-self: end; }
+.mockup-policy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  padding: 18px;
+  color: #b8bcb5;
+  font-size: 9px;
+}
+.mockup-policy span { display: flex; align-items: center; gap: 9px; }
+.mockup-policy i,
+.mockup-decision strong i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #55d58b;
+  box-shadow: 0 0 0 4px rgba(85, 213, 139, 0.09);
+}
+.mockup-decision {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px;
+}
+.mockup-decision strong {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  color: #86efac;
+  font: 700 15px var(--font-mono), monospace;
 }
 .intro-proof {
   padding: clamp(100px, 13vw, 180px) clamp(22px, 6vw, 96px);
@@ -864,6 +923,10 @@ html {
   }
   .intro-flow-list article p {
     grid-column: 2;
+  }
+  .intro-flow-mockup {
+    grid-column: 1 / -1;
+    margin-top: 6px;
   }
   .intro-proof-heading {
     grid-template-columns: 1fr;
