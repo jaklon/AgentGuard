@@ -1,3 +1,4 @@
+from .assistant import AssistantCompletionError, LlamaCppAssistant
 from .extractors import (
     IntentExtractionError,
     LlamaCppIntentExtractor,
@@ -9,11 +10,13 @@ from .policy import PolicyEvaluator
 from .service import GuardService
 
 __all__ = [
+    "AssistantCompletionError",
     "Decision",
     "GuardDecision",
     "GuardService",
     "IntentExtractionError",
     "LlamaCppIntentExtractor",
+    "LlamaCppAssistant",
     "ManualIntentExtractor",
     "OpenAIIntentExtractor",
     "PaymentIntent",

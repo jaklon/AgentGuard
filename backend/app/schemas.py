@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Annotated
+from typing import Annotated, Literal
 
 from agentguard_guard import PaymentIntent
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, model_validator
@@ -25,6 +25,30 @@ class RecipientAlias(BaseModel):
         if not any(character.isalnum() for character in value):
             raise ValueError("recipient alias must contain a letter or number")
         return value
+
+
+class AssistantConversationMessage(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    role: Literal["user", "assistant"]
+    text: str = Field(min_length=1, max_length=600)
+
+
+class AssistantChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    wallet: Address
+    question: str = Field(min_length=1, max_length=1_000)
+    conversation: list[AssistantConversationMessage] = Field(default_factory=list, max_length=8)
+    recipient_aliases: list[RecipientAlias] = Field(default_factory=list, max_length=100)
+
+
+class AssistantChatResponse(BaseModel):
+    answer: str
+    model: str
+    live_data: bool
+    data_as_of: datetime
+    sources: list[str]
 
 
 class GuardEvaluateRequest(BaseModel):

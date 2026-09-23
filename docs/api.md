@@ -45,6 +45,36 @@ Example response:
       "evaluated_at": "2026-09-14T00:00:00Z"
     }
 
+## Grounded AI assistant
+
+POST /api/assistant/chat
+
+The assistant runs on the private Qwen model configured for llama.cpp. The browser sends the
+current question, up to eight recent conversation messages, and optional browser-local recipient
+aliases. The API independently reloads the wallet balance, Safety Policy, recipient aggregates,
+and recent contract events from BOT Testnet before asking Qwen to answer.
+
+Wallet facts must come from that server-built live context. Contract events do not contain a
+payment purpose or memo, so the assistant reports that limitation instead of inventing one.
+Prompts and conversations are not persisted, and the assistant cannot sign or submit transactions.
+
+Example request:
+
+    {
+      "wallet": "0x1111111111111111111111111111111111111111",
+      "question": "Untuk apa pembayaran terakhir saya?",
+      "conversation": [],
+      "recipient_aliases": [
+        {
+          "name": "Alice",
+          "address": "0x2222222222222222222222222222222222222222"
+        }
+      ]
+    }
+
+The response contains the natural-language answer, Qwen model name, live-data timestamp, and
+the on-chain sources used for grounding.
+
 ## BOT Chain endpoints
 
 | Method | Path | Result |

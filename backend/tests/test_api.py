@@ -7,7 +7,7 @@ from agentguard_guard import PolicySnapshot
 from sqlalchemy import select
 
 from app.database import SessionLocal
-from app.main import app, rpc, settings
+from app.main import app, qwen_assistant, rpc, settings
 from app.models import AuditRecord
 
 WALLET = "0x1111111111111111111111111111111111111111"
@@ -204,3 +204,57 @@ def test_readiness_reports_bundler_without_claiming_gasless(monkeypatch: pytest.
     assert response.status_code == 200
     assert response.json()["bundler_available"] is True
     assert response.json()["gasless_available"] is False
+
+
+def test_assistant_uses_qwen_with_fresh_live_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert qwen_assistant is not None
+    captured: dict = {}
+
+    async def payment_history(_wallet: str):
+        item = {
+            "transaction_hash": "0x" + ("ab" * 32),
+            "block_number": 42,
+            "timestamp": datetime(2026, 9, 23, tzinfo=UTC),
+            "payer": WALLET,
+            "recipient": RECIPIENT,
+            "amount_bot": Decimal("0.01"),
+            "intent_hash": "0x" + ("cd" * 32),
+            "funded_from_balance": False,
+        }
+        return [item], Decimal("0.01"), 1, {RECIPIENT.lower(): (1, Decimal("0.01"))}
+
+    async def balance_wei(_wallet: str) -> int:
+        return 2 * 10**18
+
+    async def chain_id() -> int:
+        return 968
+
+    async def chat(**kwargs) -> str:
+        captured.update(kwargs)
+        return "Saldo live Anda adalah 2 BOT."
+
+    monkeypatch.setattr(rpc, "payment_history", payment_history)
+    monkeypatch.setattr(rpc, "balance_wei", balance_wei)
+    monkeypatch.setattr(rpc, "chain_id", chain_id)
+    monkeypatch.setattr(qwen_assistant, "chat", chat)
+
+    with TestClient(app) as client:
+        response = client.post("/api/assistant/chat", json={
+            "wallet": WALLET,
+            "question": "Berapa saldo saya?",
+            "conversation": [{"role": "assistant", "text": "Silakan bertanya."}],
+            "recipient_aliases": [{"name": "Agent", "address": RECIPIENT}],
+        })
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"] == "Saldo live Anda adalah 2 BOT."
+    assert body["model"] == settings.ai_model
+    assert body["live_data"] is True
+    assert captured["question"] == "Berapa saldo saya?"
+    assert captured["conversation"] == [{"role": "assistant", "content": "Silakan bertanya."}]
+    context = captured["live_context"]
+    assert context["balance_bot"] == "2"
+    assert context["history"]["confirmed_payment_count"] == 1
+    assert context["history"]["recipient_summaries"][0]["name"] == "Agent"
+    assert context["history"]["recent_payments"][0]["purpose"] is None

@@ -34,6 +34,8 @@ export type WalletReadiness = { wallet: string; balance_bot: string; chain_id: n
 export type ComponentHealth = { status: "ok" | "error" | "fallback" | string; detail: string | null; };
 export type HealthStatus = { status: "ok" | "degraded" | string; app_env: string; database: ComponentHealth; ai_provider: ComponentHealth; botchain_rpc: ComponentHealth; };
 export type RecipientAlias = { name: string; address: string; };
+export type AssistantMessage = { role: "user" | "assistant"; text: string; };
+export type AssistantChatResponse = { answer: string; model: string; live_data: boolean; data_as_of: string; sources: string[]; };
 
 type WalletConnectProvider = Eip1193Provider & {
   enable(): Promise<string[]>;
@@ -147,6 +149,7 @@ export async function ensureBotTestnet(config: PublicConfig, provider: Eip1193Pr
 
 export const newIntentHash = () => hexlify(randomBytes(32));
 export function evaluatePayment(wallet: string, prompt: string, recipientAliases: RecipientAlias[]) { return api<GuardDecision>("/api/guard/evaluate", { method: "POST", body: JSON.stringify({ wallet, prompt, recipient_aliases: recipientAliases }) }); }
+export function chatWithAssistant(wallet: string, question: string, conversation: AssistantMessage[], recipientAliases: RecipientAlias[]) { return api<AssistantChatResponse>("/api/assistant/chat", { method: "POST", body: JSON.stringify({ wallet, question, conversation, recipient_aliases: recipientAliases }) }); }
 export function simulatePayment(wallet: string, recipient: string, amount_bot: string, intent_hash: string) { return api<SimulationPreview>("/api/botchain/simulate", { method: "POST", body: JSON.stringify({ wallet, recipient, amount_bot, intent_hash }) }); }
 export const transactionOf = (hash: string) => api<TransactionStatus>("/api/botchain/transaction/" + hash);
 export const historyOf = (wallet: string) => api<PaymentHistory>("/api/botchain/history/" + wallet);

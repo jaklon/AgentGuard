@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import re
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from agentguard_guard import (
+    AssistantCompletionError,
     GuardDecision,
     GuardService,
     IntentExtractionError,
+    LlamaCppAssistant,
     LlamaCppIntentExtractor,
     OpenAIIntentExtractor,
 )
@@ -24,6 +28,8 @@ from .middleware import RateLimitMiddleware, RequestContextMiddleware, RequestLi
 from .models import AuditRecord
 from .rpc import BotChainRpc, RpcError
 from .schemas import (
+    AssistantChatRequest,
+    AssistantChatResponse,
     ComponentHealth,
     GuardEvaluateRequest,
     HealthResponse,
@@ -44,6 +50,7 @@ rpc = BotChainRpc(settings)
 
 primary_extractor = None
 local_extractor: LlamaCppIntentExtractor | None = None
+qwen_assistant: LlamaCppAssistant | None = None
 if settings.ai_provider == "openai" and settings.openai_api_key:
     primary_extractor = OpenAIIntentExtractor(
         api_key=settings.openai_api_key,
@@ -57,6 +64,11 @@ elif settings.ai_provider == "llama_cpp":
         timeout_seconds=settings.model_timeout_seconds,
     )
     primary_extractor = local_extractor
+    qwen_assistant = LlamaCppAssistant(
+        base_url=settings.local_llm_base_url,
+        model=settings.ai_model,
+        timeout_seconds=settings.model_timeout_seconds,
+    )
 guard = GuardService(
     primary_extractor=primary_extractor,
     primary_source="local" if local_extractor else "openai",
@@ -71,6 +83,8 @@ async def lifespan(_app: FastAPI):
     finally:
         if local_extractor:
             await local_extractor.aclose()
+        if qwen_assistant:
+            await qwen_assistant.aclose()
 
 
 app = FastAPI(
@@ -150,6 +164,126 @@ async def evaluate_guard(
     )
     db.commit()
     return result
+
+
+@app.post("/api/assistant/chat", response_model=AssistantChatResponse)
+async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatResponse:
+    """Answer naturally while grounding wallet claims in fresh BOT Testnet reads."""
+    if qwen_assistant is None:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "QWEN_UNAVAILABLE", "message": "The private Qwen assistant is not enabled"},
+        )
+
+    try:
+        history_result, balance_wei, chain_id = await asyncio.gather(
+            rpc.payment_history(payload.wallet),
+            rpc.balance_wei(payload.wallet),
+            rpc.chain_id(),
+        )
+    except RpcError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "LIVE_DATA_UNAVAILABLE", "message": str(exc)},
+        ) from exc
+
+    policy = None
+    policy_error = None
+    try:
+        policy = await rpc.policy(payload.wallet)
+    except RpcError as exc:
+        policy_error = str(exc)
+
+    history, total_spent, total_count, recipient_totals = history_result
+    aliases = {alias.address.lower(): alias.name for alias in payload.recipient_aliases}
+    recipient_summaries = [
+        {
+            "address": address,
+            "name": aliases.get(address.lower()),
+            "payment_count": count,
+            "total_amount_bot": format(total, "f"),
+        }
+        for address, (count, total) in sorted(
+            recipient_totals.items(),
+            key=lambda entry: (-entry[1][1], entry[0]),
+        )
+    ][:20]
+    recent_payments = [
+        {
+            "transaction_hash": item["transaction_hash"],
+            "block_number": item["block_number"],
+            "timestamp": item["timestamp"].isoformat(),
+            "recipient": item["recipient"],
+            "recipient_name": aliases.get(str(item["recipient"]).lower()),
+            "amount_bot": format(item["amount_bot"], "f"),
+            "funded_from_balance": item["funded_from_balance"],
+            "purpose": None,
+        }
+        for item in history[:10]
+    ]
+    data_as_of = datetime.now(UTC)
+    live_context = {
+        "data_as_of": data_as_of.isoformat(),
+        "wallet": payload.wallet,
+        "network": {
+            "name": "BOT Testnet",
+            "chain_id": chain_id,
+            "expected_chain_id": settings.botchain_testnet_chain_id,
+            "explorer_url": settings.botchain_testnet_explorer_url,
+        },
+        "balance_bot": format(Decimal(balance_wei) / Decimal(10**18), "f"),
+        "policy": None if policy is None else {
+            "per_transaction_limit_bot": format(policy.per_transaction_limit_bot, "f"),
+            "daily_limit_bot": format(policy.daily_limit_bot, "f"),
+            "spent_today_bot": format(policy.spent_today_bot, "f"),
+            "expires_at": policy.expires_at.isoformat() if policy.expires_at else None,
+            "allowlist_enforced": policy.allowlist_enforced,
+            "allowed_recipients": [
+                {"address": address, "name": aliases.get(address.lower())}
+                for address in policy.allowed_recipients[:20]
+            ],
+            "paused": policy.paused,
+        },
+        "policy_status": "available" if policy else "unavailable",
+        "policy_error": policy_error,
+        "history": {
+            "confirmed_payment_count": total_count,
+            "total_spent_bot": format(total_spent, "f"),
+            "recipient_summaries": recipient_summaries,
+            "recent_payments": recent_payments,
+        },
+        "limitations": [
+            "Contract events do not store payment purposes or memos.",
+            "Only the latest 10 payments and top 20 recipients are included in this chat context; aggregate totals cover all confirmed payments.",
+            "The assistant cannot sign, submit, reverse, or guarantee transactions.",
+        ],
+    }
+
+    try:
+        answer = await qwen_assistant.chat(
+            question=payload.question,
+            conversation=[
+                {"role": item.role, "content": item.text}
+                for item in payload.conversation
+            ],
+            live_context=live_context,
+        )
+    except AssistantCompletionError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "QWEN_COMPLETION_FAILED", "message": str(exc)},
+        ) from exc
+
+    sources = ["BOT Testnet RPC", "AgentGuard contract events"]
+    if policy is not None:
+        sources.append("AgentGuard Safety Policy")
+    return AssistantChatResponse(
+        answer=answer,
+        model=settings.ai_model,
+        live_data=True,
+        data_as_of=data_as_of,
+        sources=sources,
+    )
 
 
 ADDRESS_PATTERN = re.compile(r"0x[a-fA-F0-9]{40}")
