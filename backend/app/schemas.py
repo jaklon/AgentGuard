@@ -134,12 +134,42 @@ class RecipientPaymentSummary(BaseModel):
     total_amount_bot: str
 
 
+class WalletTransactionItem(BaseModel):
+    activity_id: str
+    transaction_hash: TransactionHash
+    block_number: int
+    timestamp: datetime
+    from_address: Address | None = None
+    to_address: Address | None = None
+    counterparty: Address | None = None
+    direction: Literal["incoming", "outgoing", "self"]
+    amount_bot: str
+    fee_bot: str
+    status: Literal["confirmed", "failed"]
+    method: str
+    kind: Literal["transaction", "internal_transfer"]
+    explorer_url: str
+
+
+class WalletActivityResponse(BaseModel):
+    available: bool
+    complete: bool
+    error: str | None = None
+    total_count: int
+    incoming_count: int
+    outgoing_count: int
+    total_received_bot: str
+    total_sent_bot: str
+    items: list[WalletTransactionItem]
+
+
 class PaymentHistoryResponse(BaseModel):
     wallet: Address
     total_count: int
     total_spent_bot: str
     recipient_summaries: list[RecipientPaymentSummary]
     items: list[PaymentHistoryItem]
+    wallet_activity: WalletActivityResponse
 
 
 class WalletReadinessResponse(BaseModel):

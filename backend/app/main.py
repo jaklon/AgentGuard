@@ -41,7 +41,9 @@ from .schemas import (
     SimulateRequest,
     SimulateResponse,
     TransactionStatus,
+    WalletActivityResponse,
     WalletReadinessResponse,
+    WalletTransactionItem,
 )
 
 settings = get_settings()
@@ -439,6 +441,21 @@ async def get_payment_history(
             status_code=503,
             detail={"code": "HISTORY_UNAVAILABLE", "message": str(exc)},
         ) from exc
+    try:
+        activity = await rpc.wallet_history(wallet)
+        activity_error = None
+    except RpcError as exc:
+        activity = {
+            "available": False,
+            "complete": False,
+            "total_count": 0,
+            "incoming_count": 0,
+            "outgoing_count": 0,
+            "total_received_bot": Decimal(0),
+            "total_sent_bot": Decimal(0),
+            "items": [],
+        }
+        activity_error = str(exc)
     items = [
         PaymentHistoryItem(
             **{**item, "amount_bot": format(item["amount_bot"], "f")},
@@ -463,6 +480,27 @@ async def get_payment_history(
         total_spent_bot=format(total, "f"),
         recipient_summaries=recipient_summaries,
         items=items,
+        wallet_activity=WalletActivityResponse(
+            available=activity["available"],
+            complete=activity["complete"],
+            error=activity_error,
+            total_count=activity["total_count"],
+            incoming_count=activity["incoming_count"],
+            outgoing_count=activity["outgoing_count"],
+            total_received_bot=format(activity["total_received_bot"], "f"),
+            total_sent_bot=format(activity["total_sent_bot"], "f"),
+            items=[
+                WalletTransactionItem(
+                    **{
+                        **item,
+                        "amount_bot": format(item["amount_bot"], "f"),
+                        "fee_bot": format(item["fee_bot"], "f"),
+                    },
+                    explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{item['transaction_hash']}",
+                )
+                for item in activity["items"]
+            ],
+        ),
     )
 
 

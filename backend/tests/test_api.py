@@ -176,7 +176,34 @@ def test_history_returns_decoded_contract_events(monkeypatch: pytest.MonkeyPatch
         }
         return [item], Decimal("0.01"), 1, {RECIPIENT.lower(): (1, Decimal("0.01"))}
 
+    async def wallet_history(_wallet: str):
+        return {
+            "available": True,
+            "complete": True,
+            "total_count": 1,
+            "incoming_count": 0,
+            "outgoing_count": 1,
+            "total_received_bot": Decimal("0"),
+            "total_sent_bot": Decimal("0.01"),
+            "items": [{
+                "activity_id": f"{tx_hash}:transaction:0",
+                "transaction_hash": tx_hash,
+                "block_number": 42,
+                "timestamp": datetime(2026, 9, 22, tzinfo=UTC),
+                "amount_bot": Decimal("0.01"),
+                "from_address": WALLET,
+                "to_address": RECIPIENT,
+                "counterparty": RECIPIENT,
+                "direction": "outgoing",
+                "fee_bot": Decimal("0.00021"),
+                "status": "confirmed",
+                "method": "Transfer",
+                "kind": "transaction",
+            }],
+        }
+
     monkeypatch.setattr(rpc, "payment_history", payment_history)
+    monkeypatch.setattr(rpc, "wallet_history", wallet_history)
     with TestClient(app) as client:
         response = client.get(f"/api/botchain/history/{WALLET}")
     assert response.status_code == 200
@@ -184,6 +211,8 @@ def test_history_returns_decoded_contract_events(monkeypatch: pytest.MonkeyPatch
     assert response.json()["total_count"] == 1
     assert response.json()["recipient_summaries"][0]["payment_count"] == 1
     assert response.json()["items"][0]["transaction_hash"] == tx_hash
+    assert response.json()["wallet_activity"]["outgoing_count"] == 1
+    assert response.json()["wallet_activity"]["items"][0]["direction"] == "outgoing"
 
 
 def test_readiness_reports_bundler_without_claiming_gasless(monkeypatch: pytest.MonkeyPatch) -> None:

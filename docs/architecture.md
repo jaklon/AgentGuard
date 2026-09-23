@@ -16,7 +16,7 @@
 4. Payment-request links and QR codes are treated as untrusted input and pass through the same policy and simulation checks.
 5. The contract repeats authoritative policy checks and records an anti-replay intent hash before transferring BOT.
 6. The API stores only a prompt digest and sanitized decision fields; raw prompts and wallet secrets are not persisted.
-7. Payment history is reconstructed from public contract events. Local recipient names and templates are never uploaded.
+7. Payment receipts are reconstructed from public contract events, while wallet History merges BOTScan-indexed normal and internal transactions for incoming/outgoing activity. Local recipient names and templates are never uploaded.
 8. ERC-4337 sponsorship stays disabled until a project-owned paymaster is deployed and funded and the client submits UserOperations through the bundler.
 
 ## Integration contracts

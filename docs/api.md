@@ -83,7 +83,7 @@ the on-chain sources used for grounding.
 | POST | /api/botchain/simulate | Read-only executePayment simulation with gas, fee, balance-before, and balance-after preview |
 | GET | /api/botchain/policy/{wallet} | Current contract policy and recipient list |
 | GET | /api/botchain/transaction/{hash} | Pending, confirmed, or reverted receipt |
-| GET | /api/botchain/history/{wallet} | Latest 50 PaymentExecuted receipts plus exact all-time count, amount, and per-recipient summaries |
+| GET | /api/botchain/history/{wallet} | AgentGuard PaymentExecuted receipts plus BOTScan-indexed incoming/outgoing native BOT transactions, totals, fees, status, and explorer links |
 | GET | /api/botchain/readiness/{wallet} | BOT balance, chain, faucet, bundler, EntryPoint, and sponsorship readiness |
 | GET | /api/health | Database, AI mode, and RPC status |
 

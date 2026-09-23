@@ -61,6 +61,36 @@ class BotChainRpc:
             raise RpcError(contract_error_message(payload["error"]))
         return payload.get("result")
 
+
+    async def _explorer_items(
+        self,
+        path: str,
+        *,
+        max_pages: int = 20,
+    ) -> tuple[list[dict[str, Any]], int, bool]:
+        """Read paginated address activity from the BOTScan Blockscout API."""
+        url = f"{self._settings.botchain_testnet_explorer_url.rstrip('/')}{path}"
+        items: list[dict[str, Any]] = []
+        total_count = 0
+        total_pages = 1
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                for page in range(1, max_pages + 1):
+                    response = await client.get(url, params={"page": page})
+                    response.raise_for_status()
+                    payload = response.json()
+                    page_items = payload.get("items")
+                    if not isinstance(page_items, list):
+                        raise ValueError("invalid explorer items")
+                    items.extend(item for item in page_items if isinstance(item, dict))
+                    total_count = int(payload.get("total_count", len(items)))
+                    total_pages = max(0, int(payload.get("total_pages", 1)))
+                    if page >= total_pages:
+                        break
+        except (httpx.HTTPError, TypeError, ValueError) as exc:
+            raise RpcError("BOT Chain explorer is unavailable") from exc
+        return items, total_count, total_pages <= max_pages
+
     async def chain_id(self) -> int:
         result = await self.call("eth_chainId", [])
         return int(result, 16)
@@ -237,6 +267,121 @@ class BotChainRpc:
             "funded_from_balance": funded_from_balance,
         } for log, amount_wei, funded_from_balance, recipient in decoded]
         return items, total, total_count, recipient_totals
+
+
+    async def wallet_history(
+        self,
+        wallet: str,
+        *,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """Return indexed native BOT activity involving a wallet."""
+        address = wallet.lower()
+        normal_result, internal_result = await asyncio.gather(
+            self._explorer_items(f"/api/v2/addresses/{wallet}/transactions"),
+            self._explorer_items(f"/api/v2/addresses/{wallet}/internal-transactions"),
+        )
+        normal, normal_total, normal_complete = normal_result
+        internal, internal_total, internal_complete = internal_result
+
+        activity: list[dict[str, Any]] = []
+        for item in normal:
+            parsed = self._parse_wallet_activity(item, address, internal=False)
+            if parsed:
+                activity.append(parsed)
+        for item in internal:
+            parsed = self._parse_wallet_activity(item, address, internal=True)
+            if parsed:
+                activity.append(parsed)
+
+        activity.sort(
+            key=lambda item: (item["timestamp"], item["block_number"], item["activity_id"]),
+            reverse=True,
+        )
+        received = Decimal(0)
+        sent = Decimal(0)
+        incoming_count = 0
+        outgoing_count = 0
+        for item in activity:
+            if item["direction"] == "incoming":
+                incoming_count += 1
+                if item["status"] == "confirmed":
+                    received += item["amount_bot"]
+            elif item["direction"] == "outgoing":
+                outgoing_count += 1
+                if item["status"] == "confirmed":
+                    sent += item["amount_bot"]
+
+        return {
+            "available": True,
+            "complete": normal_complete and internal_complete,
+            "total_count": normal_total + internal_total,
+            "incoming_count": incoming_count,
+            "outgoing_count": outgoing_count,
+            "total_received_bot": received,
+            "total_sent_bot": sent,
+            "items": activity[:limit],
+        }
+
+    def _parse_wallet_activity(
+        self,
+        item: dict[str, Any],
+        wallet: str,
+        *,
+        internal: bool,
+    ) -> dict[str, Any] | None:
+        try:
+            transaction_hash = str(item.get("transaction_hash") if internal else item.get("hash"))
+            if not transaction_hash.startswith("0x") or len(transaction_hash) != 66:
+                return None
+            from_address = self._explorer_address(item.get("from"))
+            to_address = self._explorer_address(item.get("to"))
+            if from_address and from_address.lower() == wallet and to_address and to_address.lower() == wallet:
+                direction = "self"
+                counterparty = wallet
+            elif to_address and to_address.lower() == wallet:
+                direction = "incoming"
+                counterparty = from_address
+            elif from_address and from_address.lower() == wallet:
+                direction = "outgoing"
+                counterparty = to_address
+            else:
+                return None
+
+            timestamp = datetime.fromisoformat(str(item["timestamp"]).replace("Z", "+00:00"))
+            if timestamp.tzinfo is None:
+                timestamp = timestamp.replace(tzinfo=UTC)
+            status_ok = bool(item.get("success", True)) if internal else (
+                item.get("status") == "ok" or item.get("result") == "success"
+            )
+            fee = item.get("fee") or {}
+            fee_wei = int(fee.get("value", 0)) if isinstance(fee, dict) else 0
+            trace_identity = item.get("index") or item.get("trace_address") or len(str(item))
+            return {
+                "activity_id": f"{transaction_hash}:{'internal' if internal else 'transaction'}:{trace_identity}",
+                "transaction_hash": transaction_hash,
+                "block_number": int(item.get("block_number", item.get("block", 0))),
+                "timestamp": timestamp,
+                "from_address": from_address,
+                "to_address": to_address,
+                "counterparty": counterparty,
+                "direction": direction,
+                "amount_bot": self._from_wei(int(item.get("value", 0))),
+                "fee_bot": self._from_wei(fee_wei),
+                "status": "confirmed" if status_ok else "failed",
+                "method": str(item.get("method") or item.get("type") or "Transfer"),
+                "kind": "internal_transfer" if internal else "transaction",
+            }
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _explorer_address(value: object) -> str | None:
+        if isinstance(value, dict):
+            value = value.get("hash")
+        if isinstance(value, str) and value.startswith("0x") and len(value) == 42:
+            return value
+        return None
 
     def _require_contract(self) -> str:
         contract = self._settings.botchain_contract_address
