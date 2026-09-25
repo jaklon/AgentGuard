@@ -239,7 +239,8 @@ def test_assistant_uses_qwen_with_fresh_live_context(monkeypatch: pytest.MonkeyP
     assert qwen_assistant is not None
     captured: dict = {}
 
-    async def payment_history(_wallet: str):
+    async def payment_history(_wallet: str, *, limit=50):
+        assert limit == 5
         item = {
             "transaction_hash": "0x" + ("ab" * 32),
             "block_number": 42,
@@ -270,7 +271,7 @@ def test_assistant_uses_qwen_with_fresh_live_context(monkeypatch: pytest.MonkeyP
     with TestClient(app) as client:
         response = client.post("/api/assistant/chat", json={
             "wallet": WALLET,
-            "question": "Berapa saldo saya?",
+            "question": "Jelaskan saldo dan policy saya",
             "conversation": [{"role": "assistant", "text": "Silakan bertanya."}],
             "recipient_aliases": [{"name": "Agent", "address": RECIPIENT}],
         })
@@ -280,10 +281,30 @@ def test_assistant_uses_qwen_with_fresh_live_context(monkeypatch: pytest.MonkeyP
     assert body["answer"] == "Saldo live Anda adalah 2 BOT."
     assert body["model"] == settings.ai_model
     assert body["live_data"] is True
-    assert captured["question"] == "Berapa saldo saya?"
+    assert captured["question"] == "Jelaskan saldo dan policy saya"
     assert captured["conversation"] == [{"role": "assistant", "content": "Silakan bertanya."}]
     context = captured["live_context"]
     assert context["balance_bot"] == "2"
     assert context["history"]["confirmed_payment_count"] == 1
     assert context["history"]["recipient_summaries"][0]["name"] == "Agent"
     assert context["history"]["recent_payments"][0]["purpose"] is None
+
+
+@pytest.mark.parametrize("chain_id, expected_status", [(968, 200), (677, 503)])
+def test_balance_fast_path_needs_no_model_or_history(monkeypatch, chain_id, expected_status):
+    async def balance(_wallet):
+        return 125 * 10**16
+    async def network():
+        return chain_id
+    async def forbidden(*args, **kwargs):
+        pytest.fail("Balance fast path must not scan history or call model")
+    monkeypatch.setattr(rpc, "balance_wei", balance)
+    monkeypatch.setattr(rpc, "chain_id", network)
+    monkeypatch.setattr(rpc, "payment_history", forbidden)
+    monkeypatch.setattr(qwen_assistant, "chat", forbidden)
+    with TestClient(app) as client:
+        response = client.post("/api/assistant/chat", json={"wallet": WALLET, "question": "Berapa saldo saya?"})
+    assert response.status_code == expected_status
+    if expected_status == 200:
+        assert "1.25 BOT" in response.json()["answer"]
+        assert response.json()["model"] == "AgentGuard live balance"

@@ -39,12 +39,16 @@ class LlamaCppAssistant:
         conversation: list[dict[str, str]],
         live_context: dict[str, Any],
     ) -> str:
+        quick_answer = grounded_quick_answer(question, live_context)
+        if quick_answer is not None:
+            return quick_answer
         messages: list[dict[str, str]] = [
             {
                 "role": "system",
                 "content": SYSTEM_PROMPT,
             },
-            *conversation[-10:],
+            *[{"role": item["role"], "content": item["content"][:500]}
+              for item in conversation[-4:] if item["role"] in {"user", "assistant"}],
             {
                 "role": "user",
                 "content": (
@@ -58,7 +62,7 @@ class LlamaCppAssistant:
         payload = {
             "model": self._model,
             "temperature": 0.35,
-            "max_tokens": 640,
+            "max_tokens": 320,
             "messages": messages,
         }
         try:
@@ -77,7 +81,8 @@ class LlamaCppAssistant:
 
 
 SYSTEM_PROMPT = """You are the AgentGuard AI Assistant running privately on Qwen.
-Be natural, warm, concise, and conversational. Match the language used by the user; Indonesian
+Be natural, warm, concise, and conversational. Prefer 2-4 short sentences unless detail is requested.
+Match the language used by the user; Indonesian
 and English are both supported. Your primary expertise is AgentGuard, BOT Chain, EVM wallets,
 payment safety, policies, receipts, and the verified live wallet data supplied with each question.
 You may answer general questions too. For time-sensitive general facts, clearly say that you do
@@ -100,4 +105,20 @@ Security and grounding rules:
 
 
 def strip_hidden_reasoning(value: str) -> str:
-    return re.sub(r"<think>.*?</think>", "", value, flags=re.DOTALL | re.IGNORECASE).strip()
+    return re.sub(r"<think>.*?(?:</think>|$)", "", value, flags=re.DOTALL | re.IGNORECASE).strip()
+
+
+def grounded_quick_answer(question: str, context: dict[str, Any]) -> str | None:
+    """Exact common questions need fresh facts, not a CPU model generation.
+
+    Full-string matching prevents broader payment/safety requests from being
+    mistaken for simple balance questions. No approval decisions happen here.
+    """
+    normalized = question.strip().lower().rstrip("?.!").strip()
+    if normalized in {"berapa saldo saya", "berapa saldo wallet saya", "saldo saya"}:
+        if "balance_bot" in context:
+            return f"Saldo wallet Anda adalah {context['balance_bot']} BOT di BOT Testnet (chain 968), berdasarkan pembacaan RPC terbaru."
+    if normalized in {"what is my balance", "what's my balance", "my balance", "wallet balance"}:
+        if "balance_bot" in context:
+            return f"Your wallet balance is {context['balance_bot']} BOT on BOT Testnet (chain 968), from the latest RPC read."
+    return None

@@ -17,6 +17,7 @@ from agentguard_guard import (
     OpenAIIntentExtractor,
 )
 from fastapi import Depends, FastAPI, HTTPException, Path, Request
+from agentguard_guard.assistant import grounded_quick_answer
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -171,6 +172,25 @@ async def evaluate_guard(
 @app.post("/api/assistant/chat", response_model=AssistantChatResponse)
 async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatResponse:
     """Answer naturally while grounding wallet claims in fresh BOT Testnet reads."""
+    # Exact balance questions need no history scan or CPU model generation.
+    if grounded_quick_answer(payload.question, {"balance_bot": ""}) is not None:
+        try:
+            balance_wei, chain_id = await asyncio.gather(
+                rpc.balance_wei(payload.wallet), rpc.chain_id(),
+            )
+            if chain_id != settings.botchain_testnet_chain_id or chain_id != 968:
+                raise RpcError("RPC returned an unexpected chain ID")
+        except RpcError as exc:
+            raise HTTPException(status_code=503, detail={
+                "code": "LIVE_DATA_UNAVAILABLE", "message": str(exc),
+            }) from exc
+        return AssistantChatResponse(
+            answer=grounded_quick_answer(payload.question, {
+                "balance_bot": format(Decimal(balance_wei) / Decimal(10**18), "f"),
+            }),
+            model="AgentGuard live balance", live_data=True,
+            data_as_of=datetime.now(UTC), sources=["BOT Testnet RPC"],
+        )
     if qwen_assistant is None:
         raise HTTPException(
             status_code=503,
@@ -178,10 +198,11 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
         )
 
     try:
-        history_result, balance_wei, chain_id = await asyncio.gather(
-            rpc.payment_history(payload.wallet),
+        history_result, balance_wei, chain_id, policy_result = await asyncio.gather(
+            rpc.payment_history(payload.wallet, limit=5),
             rpc.balance_wei(payload.wallet),
             rpc.chain_id(),
+            assistant_policy(payload.wallet),
         )
     except RpcError as exc:
         raise HTTPException(
@@ -189,12 +210,11 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
             detail={"code": "LIVE_DATA_UNAVAILABLE", "message": str(exc)},
         ) from exc
 
-    policy = None
-    policy_error = None
-    try:
-        policy = await rpc.policy(payload.wallet)
-    except RpcError as exc:
-        policy_error = str(exc)
+    if chain_id != settings.botchain_testnet_chain_id:
+        raise HTTPException(status_code=503, detail={
+            "code": "WRONG_NETWORK", "message": "RPC returned an unexpected chain ID",
+        })
+    policy, policy_error = policy_result
 
     history, total_spent, total_count, recipient_totals = history_result
     aliases = {alias.address.lower(): alias.name for alias in payload.recipient_aliases}
@@ -209,7 +229,7 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
             recipient_totals.items(),
             key=lambda entry: (-entry[1][1], entry[0]),
         )
-    ][:20]
+    ][:5]
     recent_payments = [
         {
             "transaction_hash": item["transaction_hash"],
@@ -221,7 +241,7 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
             "funded_from_balance": item["funded_from_balance"],
             "purpose": None,
         }
-        for item in history[:10]
+        for item in history[:5]
     ]
     data_as_of = datetime.now(UTC)
     live_context = {
@@ -256,7 +276,7 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
         },
         "limitations": [
             "Contract events do not store payment purposes or memos.",
-            "Only the latest 10 payments and top 20 recipients are included in this chat context; aggregate totals cover all confirmed payments.",
+            "Only the latest 5 payments and top 5 recipients are included in this chat context; aggregate totals cover all confirmed AgentGuard payments, not all wallet transfers.",
             "The assistant cannot sign, submit, reverse, or guarantee transactions.",
         ],
     }
@@ -289,6 +309,14 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
 
 
 ADDRESS_PATTERN = re.compile(r"0x[a-fA-F0-9]{40}")
+
+
+async def assistant_policy(wallet: str):
+    """Read optional policy concurrently with the other assistant context."""
+    try:
+        return await rpc.policy(wallet), None
+    except RpcError as exc:
+        return None, str(exc)
 
 
 def resolve_recipient_aliases(
@@ -433,6 +461,7 @@ async def get_transaction(
 @app.get("/api/botchain/history/{wallet}", response_model=PaymentHistoryResponse)
 async def get_payment_history(
     wallet: str = Path(pattern=r"^0x[a-fA-F0-9]{40}$"),
+    include_wallet_activity: bool = True,
 ) -> PaymentHistoryResponse:
     try:
         history, total, total_count, recipient_totals = await rpc.payment_history(wallet)
@@ -442,6 +471,8 @@ async def get_payment_history(
             detail={"code": "HISTORY_UNAVAILABLE", "message": str(exc)},
         ) from exc
     try:
+        if not include_wallet_activity:
+            raise RpcError("Wallet-wide activity was not requested")
         activity = await rpc.wallet_history(wallet)
         activity_error = None
     except RpcError as exc:

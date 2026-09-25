@@ -60,7 +60,7 @@ export default function AssistantView() {
     try {
       const { account } = await connectWallet(config, mode);
       const [nextHistory, nextReadiness, nextPolicy] = await Promise.all([
-        historyOf(account),
+        historyOf(account, false),
         readinessOf(account),
         policyOf(account).catch(() => null),
       ]);
@@ -111,15 +111,21 @@ export default function AssistantView() {
       let fallbackReadiness = readiness;
       try {
         [fallbackHistory, fallbackReadiness, fallbackPolicy] = await Promise.all([
-          historyOf(wallet),
+          historyOf(wallet, false),
           readinessOf(wallet),
-          policyOf(wallet).catch(() => policy),
+          policyOf(wallet).catch(() => null),
         ]);
         setHistory(fallbackHistory);
         setReadiness(fallbackReadiness);
         setPolicy(fallbackPolicy);
       } catch {
-        // Keep the most recently verified connection snapshot if the RPC is also unavailable.
+        setError(detail);
+        setUsingFallback(true);
+        setMessages((current) => [...current, {
+          role: "assistant",
+          text: "Data terbaru belum dapat diverifikasi. Angka di panel adalah snapshot sebelumnya dan mungkin sudah berubah. Coba lagi sebelum mengambil keputusan pembayaran.",
+        }]);
+        return;
       }
       setError(detail);
       setUsingFallback(true);
@@ -152,7 +158,7 @@ export default function AssistantView() {
       <Card className="flex min-h-[620px] flex-col p-5 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/[.08] pb-4">
           <div><h2 className="font-semibold">Natural conversation</h2><p className="mt-1 text-xs text-slate-500"><Mono>{wallet.slice(0, 8)}…{wallet.slice(-4)}</Mono></p></div>
-          <Pill status={usingFallback ? "WARN" : "ALLOW"} label={usingFallback ? "LIVE FALLBACK" : model ? "QWEN + LIVE DATA" : "LIVE WALLET"} />
+          <Pill status={usingFallback ? "WARN" : "ALLOW"} label={usingFallback ? "LIMITED RESPONSE" : model ? "LIVE DATA ANSWER" : "WALLET SNAPSHOT"} />
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto py-5" aria-live="polite">
           {messages.map((item, index) => <div key={`${item.role}-${index}`} className={`max-w-[88%] whitespace-pre-wrap rounded-xl px-4 py-3 text-sm leading-6 ${item.role === "user" ? "ml-auto bg-indigo-500/15 text-indigo-100" : "bg-white/[.05] text-slate-300"}`}>{item.text}</div>)}
@@ -164,14 +170,14 @@ export default function AssistantView() {
           <input className="input min-w-0" value={question} onChange={(event) => setQuestion(event.target.value)} maxLength={1_000} placeholder="Tanyakan apa saja tentang AgentGuard, wallet, atau topik lain…" />
           <MBtn type="submit" disabled={!question.trim() || answering}>{answering ? <Spinner /> : "Ask"}</MBtn>
         </form>
-        {error && <p className="mt-3 text-xs text-amber-300">{error} Safe live-data fallback was used.</p>}
+        {error && <p className="mt-3 text-xs text-amber-300">{error} Read the response for data availability.</p>}
       </Card>
 
       <div className="space-y-4">
         <Metric label="Total on-chain" value={`${history?.total_spent_bot ?? "—"} BOT`} />
         <Metric label="Daily spent" value={policy ? `${policy.spent_today_bot} BOT` : "Policy unavailable"} />
-        <Metric label="Wallet balance" value={`${readiness ? trimAmount(readiness.balance_bot) : "—"} BOT`} />
-        <Card className="p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Answer provenance</p><p className="mt-2 text-xs leading-5 text-slate-400">Qwen private inference + BOT Testnet RPC + AgentGuard contract events{policy ? " + active Safety Policy" : ""}.</p>{model && <p className="mt-2 break-words text-[10px] text-slate-600">{model}</p>}</Card>
+        <Metric label="Wallet balance (last loaded)" value={`${readiness ? trimAmount(readiness.balance_bot) : "—"} BOT`} />
+        <Card className="p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Answer provenance</p><p className="mt-2 text-xs leading-5 text-slate-400">Balance-only answers use live BOT Testnet RPC. Analysis uses private Qwen inference with available wallet and contract data. Check each answer for its data sources.</p>{model && <p className="mt-2 break-words text-[10px] text-slate-600">{model}</p>}</Card>
         <Card className="p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Safety boundary</p><p className="mt-2 text-xs leading-5 text-slate-400">AI can explain and analyze. It cannot sign, approve, or move funds. Never share a private key or seed phrase.</p></Card>
       </div>
     </div>}

@@ -130,6 +130,7 @@ export async function connectWallet(
 }
 
 export async function ensureBotTestnet(config: PublicConfig, provider: Eip1193Provider): Promise<void> {
+  if (config.chain_id !== BOT_CHAIN_ID) throw new Error("Network configuration mismatch. Expected BOT Testnet (968).");
   const chain = await provider.request({ method: "eth_chainId" }) as string;
   if (Number.parseInt(chain, 16) === BOT_CHAIN_ID) return;
   try {
@@ -154,11 +155,21 @@ export function evaluatePayment(wallet: string, prompt: string, recipientAliases
 export function chatWithAssistant(wallet: string, question: string, conversation: AssistantMessage[], recipientAliases: RecipientAlias[]) { return api<AssistantChatResponse>("/api/assistant/chat", { method: "POST", body: JSON.stringify({ wallet, question, conversation, recipient_aliases: recipientAliases }) }); }
 export function simulatePayment(wallet: string, recipient: string, amount_bot: string, intent_hash: string) { return api<SimulationPreview>("/api/botchain/simulate", { method: "POST", body: JSON.stringify({ wallet, recipient, amount_bot, intent_hash }) }); }
 export const transactionOf = (hash: string) => api<TransactionStatus>("/api/botchain/transaction/" + hash);
-export const historyOf = (wallet: string) => api<PaymentHistory>("/api/botchain/history/" + wallet);
+export const historyOf = (wallet: string, includeWalletActivity = true) => api<PaymentHistory>("/api/botchain/history/" + wallet + (includeWalletActivity ? "" : "?include_wallet_activity=false"));
 export const readinessOf = (wallet: string) => api<WalletReadiness>("/api/botchain/readiness/" + wallet);
 
-async function contract(config: PublicConfig, provider: Eip1193Provider, account?: string) {
-  return new Contract(config.contract_address, ABI, await new BrowserProvider(provider).getSigner(account ? getAddress(account) : undefined));
+async function contract(config: PublicConfig, provider: Eip1193Provider, account: string) {
+  if (config.chain_id !== BOT_CHAIN_ID || Number.parseInt(await provider.request({ method: "eth_chainId" }) as string, 16) !== BOT_CHAIN_ID) {
+    throw new Error("Switch your wallet back to BOT Testnet (968) before signing.");
+  }
+  const accounts = await provider.request({ method: "eth_accounts" }) as string[];
+  if (!accounts[0] || getAddress(accounts[0]) !== getAddress(account)) {
+    throw new Error("Wallet account changed. Reconnect before signing.");
+  }
+  const browser = new BrowserProvider(provider);
+  const address = getAddress(config.contract_address);
+  if (await browser.getCode(address) === "0x") throw new Error("AgentGuard contract is not deployed on the connected network.");
+  return new Contract(address, ABI, await browser.getSigner(getAddress(account)));
 }
 
 export async function executePayment(config: PublicConfig, provider: Eip1193Provider, payer: string, recipient: string, amount: string, hash: string) {
@@ -166,20 +177,20 @@ export async function executePayment(config: PublicConfig, provider: Eip1193Prov
   return tx.hash as string;
 }
 
-export async function setPolicy(config: PublicConfig, provider: Eip1193Provider, perTx: string, daily: string, expiry: number, enforce: boolean) {
-  const tx = await (await contract(config, provider)).setPolicy(parseEther(perTx), parseEther(daily), expiry, enforce);
+export async function setPolicy(config: PublicConfig, provider: Eip1193Provider, perTx: string, daily: string, expiry: number, enforce: boolean, account: string) {
+  const tx = await (await contract(config, provider, account)).setPolicy(parseEther(perTx), parseEther(daily), expiry, enforce);
   await tx.wait();
   return tx.hash as string;
 }
 
-export async function setRecipient(config: PublicConfig, provider: Eip1193Provider, recipient: string, allowed: boolean) {
-  const tx = await (await contract(config, provider)).setRecipient(getAddress(recipient), allowed);
+export async function setRecipient(config: PublicConfig, provider: Eip1193Provider, recipient: string, allowed: boolean, account: string) {
+  const tx = await (await contract(config, provider, account)).setRecipient(getAddress(recipient), allowed);
   await tx.wait();
   return tx.hash as string;
 }
 
-export async function setWalletPaused(config: PublicConfig, provider: Eip1193Provider, paused: boolean) {
-  const tx = await (await contract(config, provider)).setWalletPaused(paused);
+export async function setWalletPaused(config: PublicConfig, provider: Eip1193Provider, paused: boolean, account: string) {
+  const tx = await (await contract(config, provider, account)).setWalletPaused(paused);
   await tx.wait();
   return tx.hash as string;
 }

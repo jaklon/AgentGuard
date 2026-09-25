@@ -3,6 +3,32 @@ import { ethers } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 describe("AgentGuard", function () {
+  it("rejects non-owner emergency pause", async function () {
+    const { contract, stranger } = await deployFixture();
+    await expect(contract.connect(stranger).pause()).to.be.revertedWithCustomError(contract, "OwnableUnauthorizedAccount");
+  });
+
+  it("rejects expired policy and zero intent", async function () {
+    const { contract, payer, recipient } = await deployFixture();
+    await expect(contract.connect(payer).executePayment(recipient.address, ethers.ZeroHash, { value: 1n }))
+      .to.be.revertedWithCustomError(contract, "InvalidIntentHash");
+    await time.increase(86_401);
+    await expect(contract.connect(payer).executePayment(recipient.address, ethers.id("expired"), { value: 1n }))
+      .to.be.revertedWithCustomError(contract, "PolicyExpired");
+  });
+
+  it("enforces daily total and isolates payer deposits", async function () {
+    const { contract, payer, recipient, stranger } = await deployFixture();
+    for (let i = 0; i < 5; i++) {
+      await contract.connect(payer).executePayment(recipient.address, ethers.id(`daily-${i}`), { value: ethers.parseEther("0.02") });
+    }
+    await expect(contract.connect(payer).executePayment(recipient.address, ethers.id("daily-overflow"), { value: 1n }))
+      .to.be.revertedWithCustomError(contract, "DailyLimitExceeded");
+    await contract.connect(payer).deposit({ value: 100n });
+    await expect(contract.connect(stranger).withdraw(100n)).to.be.revertedWithCustomError(contract, "InsufficientBalance");
+    await contract.connect(payer).withdraw(100n);
+    expect(await contract.depositedBalance(payer.address)).to.equal(0n);
+  });
   async function deployFixture() {
     const [owner, payer, recipient, stranger] = await ethers.getSigners();
     const contract = await ethers.deployContract("AgentGuard", [owner.address]);

@@ -1,7 +1,8 @@
 import os
+import tempfile
 from pathlib import Path
 
-TEST_DB = Path("/tmp/agentguard-test.db")
+TEST_DB = Path(tempfile.mkdtemp(prefix="agentguard-test-")) / "audit.db"
 for suffix in ("", "-shm", "-wal"):
     try:
         Path(str(TEST_DB) + suffix).unlink()

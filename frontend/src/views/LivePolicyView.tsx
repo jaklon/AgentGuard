@@ -40,7 +40,7 @@ export default function LivePolicyView() {
   async function savePolicy() {
     if (!config || !wallet || !walletProvider) return;
     setBusy(true); setError("");
-    try { const expires = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; setTransaction(await setPolicy(config, walletProvider, perTx, daily, expires, true)); await refresh(wallet); }
+    try { const expires = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; setTransaction(await setPolicy(config, walletProvider, perTx, daily, expires, true, wallet)); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -49,7 +49,7 @@ export default function LivePolicyView() {
     if (!config || !wallet || !walletProvider || !recipient || !recipientName.trim()) return;
     setBusy(true); setError("");
     try {
-      setTransaction(await setRecipient(config, walletProvider, recipient, true));
+      setTransaction(await setRecipient(config, walletProvider, recipient, true, wallet));
       saveRecipient(wallet, { name: recipientName, address: recipient });
       setRecipientInput(""); setRecipientName("");
       await refresh(wallet);
@@ -60,7 +60,7 @@ export default function LivePolicyView() {
   async function removeAllowedRecipient(address: string) {
     if (!config || !wallet || !walletProvider) return;
     setBusy(true); setError("");
-    try { setTransaction(await setRecipient(config, walletProvider, address, false)); removeRecipient(wallet, address); await refresh(wallet); }
+    try { setTransaction(await setRecipient(config, walletProvider, address, false, wallet)); removeRecipient(wallet, address); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -76,7 +76,7 @@ export default function LivePolicyView() {
   async function togglePause() {
     if (!config || !wallet || !walletProvider || !policy) return;
     setBusy(true); setError("");
-    try { setTransaction(await setWalletPaused(config, walletProvider, !policy.paused)); await refresh(wallet); }
+    try { setTransaction(await setWalletPaused(config, walletProvider, !policy.paused, wallet)); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }

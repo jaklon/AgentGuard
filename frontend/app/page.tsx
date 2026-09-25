@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { BrandLogo } from "../src/shared";
+import { MainnetExplorerLink } from "../src/components/MainnetExplorerLink";
 
 export default function IntroductionPage() {
   const root = useRef<HTMLElement>(null);
@@ -143,6 +144,7 @@ export default function IntroductionPage() {
             decision to you.
           </p>
           <div data-intro-copy className="intro-actions">
+            <MainnetExplorerLink />
             <Link href="/login" className="intro-cta">
               Open AgentGuard <span>↗</span>
             </Link>

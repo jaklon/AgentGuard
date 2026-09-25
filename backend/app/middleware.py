@@ -44,6 +44,17 @@ class RequestLimitMiddleware(BaseHTTPMiddleware):
                 {"detail": {"code": "REQUEST_TOO_LARGE", "message": "Request body is too large"}},
                 status_code=413,
             )
+        # Content-Length is optional and untrusted (e.g. chunked requests).
+        # Bound actual bytes before FastAPI parses JSON, then replay the body.
+        body = bytearray()
+        async for chunk in request.stream():
+            if len(body) + len(chunk) > self._max_bytes:
+                return JSONResponse(
+                    {"detail": {"code": "REQUEST_TOO_LARGE", "message": "Request body is too large"}},
+                    status_code=413,
+                )
+            body.extend(chunk)
+        request._body = bytes(body)
         return await call_next(request)
 
 
