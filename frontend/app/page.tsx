@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { BrandLogo } from "../src/shared";
+import { MainnetExplorerLink } from "../src/components/MainnetExplorerLink";
 
 const AGENTGUARD_MAINNET_CONTRACT =
   "https://scan.botchain.ai/address/0xae49e0dFae28d43e149b09c4240CbA2F378A1dd6";
@@ -156,6 +157,7 @@ export default function IntroductionPage() {
             decision to you.
           </p>
           <div data-intro-copy className="intro-actions">
+            <MainnetExplorerLink />
             <Link href="/login" className="intro-cta">
               Open AgentGuard <span>↗</span>
             </Link>

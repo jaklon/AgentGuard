@@ -39,6 +39,9 @@ class LlamaCppAssistant:
         conversation: list[dict[str, str]],
         live_context: dict[str, Any],
     ) -> str:
+        quick_answer = grounded_quick_answer(question, live_context)
+        if quick_answer is not None:
+            return quick_answer
         messages: list[dict[str, str]] = [
             {
                 "role": "system",
@@ -78,8 +81,9 @@ class LlamaCppAssistant:
 
 
 SYSTEM_PROMPT = """You are the private AgentGuard AI Assistant.
-Be natural, warm, concise, and conversational. Always respond in clear English, even when the
-user writes in another language. Your primary expertise is AgentGuard, BOT Chain, EVM wallets,
+Be natural, warm, concise, and conversational. Prefer 2-4 short sentences unless detail is
+requested. Match the language used by the user; Indonesian and English are both supported.
+Your primary expertise is AgentGuard, BOT Chain, EVM wallets,
 payment safety, policies, receipts, and the verified live wallet data supplied with each question.
 You may answer general questions too. For time-sensitive general facts, clearly say that you do
 not have live web access unless the fact appears in VERIFIED_LIVE_CONTEXT_JSON.
@@ -102,3 +106,25 @@ Security and grounding rules:
 
 def strip_hidden_reasoning(value: str) -> str:
     return re.sub(r"<think>.*?(?:</think>|$)", "", value, flags=re.DOTALL | re.IGNORECASE).strip()
+
+
+def grounded_quick_answer(question: str, context: dict[str, Any]) -> str | None:
+    """Answer exact balance-only questions from fresh RPC data without model inference."""
+    normalized = question.strip().lower().rstrip("?.!").strip()
+    balance = context.get("balance_bot")
+    if balance is None:
+        return None
+    network = context.get("network") if isinstance(context.get("network"), dict) else {}
+    network_name = network.get("name") or "BOT Chain Mainnet"
+    chain_id = network.get("chain_id") or 677
+    if normalized in {"berapa saldo saya", "berapa saldo wallet saya", "saldo saya"}:
+        return (
+            f"Saldo wallet Anda adalah {balance} BOT di {network_name} "
+            f"(chain {chain_id}), berdasarkan pembacaan RPC terbaru."
+        )
+    if normalized in {"what is my balance", "what's my balance", "my balance", "wallet balance"}:
+        return (
+            f"Your wallet balance is {balance} BOT on {network_name} "
+            f"(chain {chain_id}), from the latest RPC read."
+        )
+    return None

@@ -289,7 +289,7 @@ def test_assistant_uses_private_ai_with_fresh_live_context(monkeypatch: pytest.M
     with TestClient(app) as client:
         response = client.post("/api/assistant/chat", json={
             "wallet": WALLET,
-            "question": "What is my balance?",
+            "question": "Summarize my wallet",
             "conversation": [{"role": "assistant", "text": "Ask me anything."}],
             "recipient_aliases": [{"name": "Agent", "address": RECIPIENT}],
         })
@@ -299,7 +299,7 @@ def test_assistant_uses_private_ai_with_fresh_live_context(monkeypatch: pytest.M
     assert body["answer"] == "Your live balance is 2 BOT."
     assert body["model"] == "private-local-model"
     assert body["live_data"] is True
-    assert captured["question"] == "What is my balance?"
+    assert captured["question"] == "Summarize my wallet"
     assert captured["conversation"] == [{"role": "assistant", "content": "Ask me anything."}]
     context = captured["live_context"]
     assert context["balance_bot"] == "2"

@@ -11,6 +11,24 @@
 html {
   scroll-behavior: smooth;
 }
+.mainnet-explorer-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border: 1px solid #10a37f;
+  border-radius: 999px;
+  background: #10251f;
+  color: #f4efe1;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.mainnet-explorer-button img { flex-shrink: 0; }
+.mainnet-explorer-button:hover { background: #163c30; }
+.mainnet-explorer-button:focus-visible { outline: 3px solid #d6c38c; outline-offset: 4px; }
 .intro-page {
   min-height: 100vh;
   overflow: hidden;
@@ -153,6 +171,8 @@ html {
   color: #a8ada6;
 }
 .intro-actions {
+  flex-wrap: wrap;
+  min-width: 0;
   justify-self: end;
   display: flex;
   align-items: center;

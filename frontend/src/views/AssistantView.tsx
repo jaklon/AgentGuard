@@ -177,7 +177,7 @@ export default function AssistantView() {
         <Metric label="Total on-chain" value={`${history?.total_spent_bot ?? "—"} BOT`} />
         <Metric label="Daily spent" value={policy ? `${policy.spent_today_bot} BOT` : "Policy unavailable"} />
         <Metric label="Wallet balance (last loaded)" value={`${readiness ? trimAmount(readiness.balance_bot) : "—"} BOT`} />
-        <Card className="p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Answer provenance</p><p className="mt-2 text-xs leading-5 text-slate-400">Private AI inference + BOT Chain Mainnet RPC + AgentGuard contract events{policy ? " + active Safety Policy" : ""}.</p></Card>
+        <Card className="p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Answer provenance</p><p className="mt-2 text-xs leading-5 text-slate-400">Balance-only answers use live BOT Chain Mainnet RPC. Analysis uses private AI inference with contract events{policy ? " and the active Safety Policy" : ""}.</p>{model && <p className="mt-2 break-words text-[10px] text-slate-600">{model}</p>}</Card>
         <Card className="p-4"><p className="text-[10px] uppercase tracking-wider text-slate-500">Safety boundary</p><p className="mt-2 text-xs leading-5 text-slate-400">AI can explain and analyze. It cannot sign, approve, or move funds. Never share a private key or seed phrase.</p></Card>
       </div>
     </div>}

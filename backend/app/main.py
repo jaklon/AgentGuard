@@ -11,6 +11,7 @@ from agentguard_guard import (
     AssistantCompletionError,
     GuardDecision,
     GuardService,
+    grounded_quick_answer,
     IntentExtractionError,
     LlamaCppAssistant,
     LlamaCppIntentExtractor,
@@ -171,6 +172,30 @@ async def evaluate_guard(
 @app.post("/api/assistant/chat", response_model=AssistantChatResponse)
 async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatResponse:
     """Answer naturally while grounding wallet claims in fresh BOT Chain reads."""
+    if grounded_quick_answer(payload.question, {"balance_bot": ""}) is not None:
+        try:
+            balance_wei, chain_id = await asyncio.gather(
+                rpc.balance_wei(payload.wallet),
+                rpc.chain_id(),
+            )
+            if chain_id != settings.botchain_chain_id:
+                raise RpcError("BOT Chain RPC returned an unexpected chain ID")
+        except RpcError as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "LIVE_DATA_UNAVAILABLE", "message": str(exc)},
+            ) from exc
+        answer = grounded_quick_answer(payload.question, {
+            "balance_bot": format(Decimal(balance_wei) / Decimal(10**18), "f"),
+            "network": {"name": settings.botchain_network_name, "chain_id": chain_id},
+        })
+        return AssistantChatResponse(
+            answer=answer or "Live balance is unavailable.",
+            model="AgentGuard live balance",
+            live_data=True,
+            data_as_of=datetime.now(UTC),
+            sources=[f"{settings.botchain_network_name} RPC"],
+        )
     if ai_assistant is None:
         raise HTTPException(
             status_code=503,

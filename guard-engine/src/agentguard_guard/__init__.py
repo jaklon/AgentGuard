@@ -1,4 +1,4 @@
-from .assistant import AssistantCompletionError, LlamaCppAssistant
+from .assistant import AssistantCompletionError, LlamaCppAssistant, grounded_quick_answer
 from .extractors import (
     IntentExtractionError,
     LlamaCppIntentExtractor,
@@ -17,6 +17,7 @@ __all__ = [
     "IntentExtractionError",
     "LlamaCppIntentExtractor",
     "LlamaCppAssistant",
+    "grounded_quick_answer",
     "ManualIntentExtractor",
     "OpenAIIntentExtractor",
     "PaymentIntent",
