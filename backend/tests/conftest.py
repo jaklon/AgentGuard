@@ -1,7 +1,10 @@
 import os
+import tempfile
 from pathlib import Path
 
-TEST_DB = Path("/tmp/agentguard-test.db")
+# Tests must never depend on, or require permission to read, the deployment .env.
+os.environ["AGENTGUARD_ENV_FILE"] = "/dev/null"
+TEST_DB = Path(tempfile.mkdtemp(prefix="agentguard-test-")) / "audit.db"
 for suffix in ("", "-shm", "-wal"):
     try:
         Path(str(TEST_DB) + suffix).unlink()

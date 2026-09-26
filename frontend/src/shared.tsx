@@ -44,7 +44,7 @@ export function BrandLogo({ size = 42, className = "" }: { size?: number; classN
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
-      <img src="/brand/agentguard-logo.png" alt="" />
+      <img src="/brand/agentguard-mark.svg" alt="" />
     </span>
   );
 }
@@ -52,8 +52,9 @@ export function Icon({ name, size = 18 }: { name: string; size?: number }) {
   const p: Record<string, ReactNode> = {
     shield: (
       <>
-        <path d="M12 3 4.5 6v5.5c0 4.7 3.2 7.7 7.5 9.5 4.3-1.8 7.5-4.8 7.5-9.5V6L12 3Z" />
-        <path d="m8.6 12 2.1 2.1 4.7-5" />
+        <path d="M12 2.7 20 5.9v5.7c0 5.1-3.1 9-8 11.4-4.9-2.4-8-6.3-8-11.4V5.9L12 2.7Z" fill="currentColor" stroke="none" />
+        <path d="m12 2.7 2.6 4.6L12 23 9.4 7.3 12 2.7Z" fill="#080b0c" stroke="none" />
+        <path d="M12 2.7 20 5.9v5.7c0 5.1-3.1 9-8 11.4V2.7Z" fill="currentColor" fillOpacity=".52" stroke="none" />
       </>
     ),
     check: <path d="m5 12 4 4L19 6" />,

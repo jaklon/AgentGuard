@@ -44,7 +44,8 @@ class LlamaCppAssistant:
                 "role": "system",
                 "content": SYSTEM_PROMPT,
             },
-            *conversation[-10:],
+            *[{"role": item["role"], "content": item["content"][:500]}
+              for item in conversation[-4:] if item["role"] in {"user", "assistant"}],
             {
                 "role": "user",
                 "content": (
@@ -58,7 +59,7 @@ class LlamaCppAssistant:
         payload = {
             "model": self._model,
             "temperature": 0.35,
-            "max_tokens": 640,
+            "max_tokens": 320,
             "messages": messages,
         }
         try:
@@ -73,12 +74,12 @@ class LlamaCppAssistant:
                 raise ValueError("completion is empty")
             return answer
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
-            raise AssistantCompletionError("Qwen assistant is temporarily unavailable") from exc
+            raise AssistantCompletionError("AI assistant is temporarily unavailable") from exc
 
 
-SYSTEM_PROMPT = """You are the AgentGuard AI Assistant running privately on Qwen.
-Be natural, warm, concise, and conversational. Match the language used by the user; Indonesian
-and English are both supported. Your primary expertise is AgentGuard, BOT Chain, EVM wallets,
+SYSTEM_PROMPT = """You are the private AgentGuard AI Assistant.
+Be natural, warm, concise, and conversational. Always respond in clear English, even when the
+user writes in another language. Your primary expertise is AgentGuard, BOT Chain, EVM wallets,
 payment safety, policies, receipts, and the verified live wallet data supplied with each question.
 You may answer general questions too. For time-sensitive general facts, clearly say that you do
 not have live web access unless the fact appears in VERIFIED_LIVE_CONTEXT_JSON.
@@ -100,4 +101,4 @@ Security and grounding rules:
 
 
 def strip_hidden_reasoning(value: str) -> str:
-    return re.sub(r"<think>.*?</think>", "", value, flags=re.DOTALL | re.IGNORECASE).strip()
+    return re.sub(r"<think>.*?(?:</think>|$)", "", value, flags=re.DOTALL | re.IGNORECASE).strip()

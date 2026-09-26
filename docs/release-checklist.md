@@ -2,18 +2,18 @@
 
 ## Code and security
 
-- [ ] Guard, API, contract, frontend, and critical integration tests pass.
-- [ ] Secret scan passes and frontend bundle contains no key or credential.
-- [ ] CORS contains only the production HTTPS origin.
-- [ ] Request limits, rate limits, sanitized logs, SQLite WAL, and health checks are active.
-- [ ] Contract security tests cover authorization, pause, allowlist, boundaries, replay, and reentrancy-sensitive transfers.
+- [x] Guard, API, contract, frontend, and critical integration tests pass.
+- [x] Gitleaks passes for Git history, current source, and the browser-delivered static bundle.
+- [x] CORS contains only the production HTTPS origin.
+- [x] Request limits, rate limits, sanitized logs, SQLite WAL, and health checks are active.
+- [x] Contract security tests cover authorization, pause, allowlist, boundaries, replay, and reentrancy-sensitive transfers.
 
 ## Configuration
 
-- [ ] Backend and frontend use the same contract address, chain ID, RPC, and explorer.
+- [x] Backend and frontend use the same contract address, chain ID, RPC, and explorer.
 - [ ] Contract address and at least one successful transaction are visible on BOTScan.
-- [ ] Mainnet remains disabled unless the team records a separate release decision.
-- [ ] DNS resolves to the VM and HTTPS has a valid certificate.
+- [x] Mainnet release decision recorded on 26 September 2026; production is pinned to chain `677` and the approved contract.
+- [x] DNS resolves to the VM and HTTPS has a valid certificate.
 
 ## Acceptance
 
@@ -29,9 +29,9 @@
 
 - Release tag:
 - Commit:
-- Contract:
+- Contract: `0xae49e0dFae28d43e149b09c4240CbA2F378A1dd6`
 - ALLOW transaction:
 - BLOCK screenshot:
-- Live URL:
-- Tester and time:
+- Live URL: `https://agentguard.my.id`
+- Tester and time: Codex deployment verification, 26 September 2026 12:57 WIB
 - Rollback tag:

@@ -12,7 +12,7 @@ export function proxy(request: NextRequest) {
     "style-src-attr 'unsafe-inline'",
     "img-src 'self' blob: data: https://api.web3modal.org",
     "font-src 'self' https://fonts.reown.com",
-    `connect-src 'self' https://rpc.bohr.life https://api.web3modal.org https://rpc.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org https://echo.walletconnect.com https://relay.walletconnect.com https://relay.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org${isDevelopment ? " ws: wss:" : ""}`,
+    `connect-src 'self' https://rpc.botchain.ai${isDevelopment ? " https://rpc.bohr.life" : ""} https://api.web3modal.org https://rpc.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.com https://verify.walletconnect.org https://echo.walletconnect.com https://relay.walletconnect.com https://relay.walletconnect.org wss://relay.walletconnect.com wss://relay.walletconnect.org${isDevelopment ? " ws: wss:" : ""}`,
     "frame-src https://verify.walletconnect.com https://verify.walletconnect.org https://secure.walletconnect.org https://secure-mobile.walletconnect.com https://secure-mobile.walletconnect.org",
     "worker-src 'self' blob:",
     "object-src 'none'",

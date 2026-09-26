@@ -1,16 +1,20 @@
-import { ethers, network } from "hardhat";
+import hre from "hardhat";
 
 async function main() {
   if (!process.env.DEPLOYER_PRIVATE_KEY) {
     throw new Error("DEPLOYER_PRIVATE_KEY is required; use a dedicated low-value wallet");
   }
+
+  const { ethers, networkName, networkConfig } = await hre.network.create();
+  const chainId = networkConfig.chainId;
+
   if (
-    network.config.chainId === 677 &&
+    chainId === 677 &&
     process.env.ALLOW_MAINNET_DEPLOYMENT !== "true"
   ) {
     throw new Error("Mainnet release gate is closed (ALLOW_MAINNET_DEPLOYMENT is not true)");
   }
-  if (![968, 677].includes(network.config.chainId ?? 0)) {
+  if (![968, 677].includes(chainId ?? 0)) {
     throw new Error("Deployment is restricted to BOT Chain testnet or mainnet");
   }
 
@@ -27,8 +31,8 @@ async function main() {
       {
         contract: "AgentGuard",
         address,
-        chainId: network.config.chainId,
-        network: network.name,
+        chainId,
+        network: networkName,
         deployer: (await ethers.getSigners())[0].address,
         owner: ethers.getAddress(owner),
         deploymentTransaction: contract.deploymentTransaction()?.hash,

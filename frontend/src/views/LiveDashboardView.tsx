@@ -7,7 +7,7 @@ import type { EvaluationActivity, TransactionActivity } from "../lib/activity";
 import { isValidBotAmount, sameBotAmount } from "../lib/amount";
 import {
   connectWallet,
-  ensureBotTestnet,
+  ensureBotChain,
   evaluatePayment,
   executePayment,
   getPublicConfig,
@@ -102,7 +102,7 @@ export default function LiveDashboardView({
         setError(reason.message);
       });
     };
-    const chain = () => ensureBotTestnet(config, walletProvider).catch((reason: Error) => setError(reason.message));
+    const chain = () => ensureBotChain(config, walletProvider).catch((reason: Error) => setError(reason.message));
     walletProvider.on?.("accountsChanged", accounts);
     walletProvider.on?.("chainChanged", chain);
     return () => {
@@ -164,7 +164,7 @@ export default function LiveDashboardView({
   }
 
   async function check() {
-    if (!wallet) return setError("Connect a BOT Testnet wallet first.");
+    if (!wallet) return setError(`Connect a ${config?.chain_name || "BOT Chain"} wallet first.`);
     const account = wallet;
     const paymentPrompt = prompt;
     const version = ++evaluationVersion.current;
@@ -193,7 +193,7 @@ export default function LiveDashboardView({
     const version = evaluationVersion.current;
     setBusy("approve"); setError("");
     try {
-      await ensureBotTestnet(config, walletProvider);
+      await ensureBotChain(config, walletProvider);
       if (version !== evaluationVersion.current || selectedWallet.current.toLowerCase() !== account.toLowerCase()) throw new Error("Wallet or payment details changed. Run the safety check again.");
       const simulation = await simulatePayment(account, decision.intent.recipient, decision.intent.amount_bot, intentHash);
       setPreview(simulation);
@@ -277,7 +277,7 @@ export default function LiveDashboardView({
   return <motion.div {...fadeUp} className="guard-home">
     <section className="guard-hero mb-8 pb-9">
       <div className="guard-hero-logo" aria-hidden="true"><BrandLogo size={160} /></div>
-      <p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-300">Live BOT Testnet · Chain 968</p>
+      <p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-300">Live {config?.chain_name || "BOT Chain"} · Chain {config?.chain_id ?? "—"}</p>
       <h1 className="guard-title mt-4 font-semibold leading-[.93] tracking-[-.055em]">Check before funds move.</h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-slate-400">Describe, preview, and approve a policy-protected payment. Only your wallet can sign.</p>
     </section>
@@ -289,7 +289,7 @@ export default function LiveDashboardView({
         <WalletConnectionButtons onConnect={connect} busy={!config || Boolean(busy)} connected={Boolean(wallet)} className="mt-5" />
         {wallet && <div className="mt-5 space-y-2">
           <ReadinessItem label="Wallet connected" ready />
-          <ReadinessItem label="BOT Testnet · 968" ready={readiness?.chain_id === 968} />
+          <ReadinessItem label={`${config?.chain_name || "BOT Chain"} · ${config?.chain_id ?? "—"}`} ready={Boolean(readiness && config && readiness.chain_id === config.chain_id)} />
           <ReadinessItem label={readiness ? `${trimAmount(readiness.balance_bot)} BOT available` : "Checking balance"} ready={Number(readiness?.balance_bot || 0) > 0} />
           <ReadinessItem label={policy?.paused ? "Safety Policy paused" : "Safety Policy active"} ready={Boolean(policy && !policy.paused)} />
           <ReadinessItem label={recipients.length ? `${recipients.length} trusted recipient${recipients.length > 1 ? "s" : ""}` : "No named recipients"} ready={recipients.length > 0} />
@@ -304,7 +304,7 @@ export default function LiveDashboardView({
             warn={Boolean(readiness?.bundler_available && !readiness?.gasless_available)}
           />
         </div>}
-        {readiness && Number(readiness.balance_bot) <= 0.001 && <a href={readiness.faucet_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs font-semibold text-amber-200">Get test BOT <Icon name="arrow" size={14} /></a>}
+        {readiness?.faucet_url && Number(readiness.balance_bot) <= 0.001 && <a href={readiness.faucet_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs font-semibold text-amber-200">Get test BOT <Icon name="arrow" size={14} /></a>}
         {wallet && !notifications && <button onClick={() => void turnOnNotifications()} className="mt-4 w-full rounded-lg border border-white/[.1] px-3 py-2 text-left text-xs text-slate-400 hover:text-white">Enable confirmation notifications</button>}
         <Divider />
         {policy ? <>
@@ -320,7 +320,7 @@ export default function LiveDashboardView({
         <Card className="p-6 md:p-8">
           <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-400">Step 1 of 2</p>
           <h2 className="mt-1 font-semibold">Describe the payment</h2>
-          <textarea value={prompt} onChange={(event) => { setPrompt(event.target.value); invalidatePaymentState(); }} className="input mt-5 min-h-40 resize-none text-base leading-7" placeholder="Example: Send 0.01 BOT to Alice for the testnet demo" />
+          <textarea value={prompt} onChange={(event) => { setPrompt(event.target.value); invalidatePaymentState(); }} className="input mt-5 min-h-40 resize-none text-base leading-7" placeholder="Example: Send 0.01 BOT to Alice for an invoice" />
           {recipients.length > 0 ? <div className="mt-4">
             <p className="text-xs text-slate-400">Trusted recipients</p>
             <div className="mt-2 flex flex-wrap gap-2">{recipients.map((recipient) => <button key={recipient.address} type="button" onClick={() => { setPrompt(`Send 0.01 BOT to ${recipient.name}`); invalidatePaymentState(); }} className="rounded-full border border-indigo-400/30 bg-indigo-400/10 px-3 py-1.5 text-xs font-medium text-indigo-200 hover:bg-indigo-400/20">{recipient.name}</button>)}</div>
@@ -376,7 +376,7 @@ function Notice({ children, error = false, success = false }: { children: React.
 }
 
 function PaymentSummary({ intent, recipient }: { intent: NonNullable<GuardDecision["intent"]>; recipient?: SavedRecipient }) {
-  return <div className="mt-4"><Row label="Recipient" value={recipient?.name || "Verified recipient"} /><Row label="Wallet address" value={<span className="flex min-w-0 items-center gap-1"><Mono className="break-all text-xs">{intent.recipient}</Mono><CopyBtn text={intent.recipient} /></span>} /><Row label="Amount" value={<Mono>{intent.amount_bot} BOT</Mono>} /><Row label="Network" value="BOT Testnet · 968" /><Row label="Purpose" value={intent.purpose || "Not supplied"} /><p className="mt-4 text-xs leading-5 text-slate-500">Check the exact address, amount, network, balance impact, and contract before approving.</p></div>;
+  return <div className="mt-4"><Row label="Recipient" value={recipient?.name || "Verified recipient"} /><Row label="Wallet address" value={<span className="flex min-w-0 items-center gap-1"><Mono className="break-all text-xs">{intent.recipient}</Mono><CopyBtn text={intent.recipient} /></span>} /><Row label="Amount" value={<Mono>{intent.amount_bot} BOT</Mono>} /><Row label="Network" value={`BOT Chain Mainnet · ${intent.chain_id}`} /><Row label="Purpose" value={intent.purpose || "Not supplied"} /><p className="mt-4 text-xs leading-5 text-slate-500">Check the exact address, amount, network, balance impact, and contract before approving.</p></div>;
 }
 
 function trimAmount(value: string): string {

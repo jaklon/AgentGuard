@@ -179,7 +179,7 @@ class WalletReadinessResponse(BaseModel):
     bundler_available: bool
     gasless_available: bool
     entry_point: Address
-    faucet_url: str
+    faucet_url: str = ""
 
 
 class ComponentHealth(BaseModel):
@@ -204,7 +204,7 @@ class PublicConfigResponse(BaseModel):
     explorer_url: str
     contract_address: Address
     allocation_wallet: Address
-    faucet_url: str
-    bundler_url: str
+    faucet_url: str = ""
+    bundler_url: str = ""
     entry_point: Address
     gasless_available: bool

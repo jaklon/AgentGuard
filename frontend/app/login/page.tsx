@@ -83,7 +83,7 @@ export default function LoginPage() {
             control room.
           </h1>
           <p>
-            Connect your BOT Testnet wallet from the dashboard. AgentGuard checks
+            Connect your BOT Chain Mainnet wallet from the dashboard. AgentGuard checks
             the live on-chain policy before asking for wallet approval.
           </p>
         </div>
@@ -131,7 +131,7 @@ export default function LoginPage() {
         </button>
         <p className="login-disclaimer login-reveal">
           Your profile stays in this browser. Payments require your connected
-          wallet and an explicit signature on BOT Chain Testnet.
+          wallet and an explicit signature on BOT Chain Mainnet.
         </p>
       </section>
     </main>

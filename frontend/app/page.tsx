@@ -7,6 +7,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { BrandLogo } from "../src/shared";
 
+const AGENTGUARD_MAINNET_CONTRACT =
+  "https://scan.botchain.ai/address/0xae49e0dFae28d43e149b09c4240CbA2F378A1dd6";
+
 export default function IntroductionPage() {
   const root = useRef<HTMLElement>(null);
   const [activeFlow, setActiveFlow] = useState(0);
@@ -111,7 +114,17 @@ export default function IntroductionPage() {
           <span>AgentGuard</span>
         </Link>
         <div className="intro-nav-right">
-          <span className="intro-network">BOT Chain · 968</span>
+          <a
+            className="intro-botchain-nav"
+            href={AGENTGUARD_MAINNET_CONTRACT}
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open AgentGuard on the BOT Chain mainnet explorer"
+          >
+            <span>BUILT ON</span>
+            <img src="/brand/botchain-logo.svg" alt="BOT Chain" />
+          </a>
+          <span className="intro-network">BOT Chain Mainnet · 677</span>
           <Link href="/login" className="intro-login-link">
             Enter
           </Link>
@@ -348,13 +361,29 @@ export default function IntroductionPage() {
           <br />
           <em>Do not let it be careless.</em>
         </h2>
-        <Link href="/login" className="intro-cta intro-cta-light">
-          Enter AgentGuard <span>→</span>
-        </Link>
+        <div className="intro-final-actions">
+          <Link href="/login" className="intro-cta intro-cta-light">
+            Enter AgentGuard <span>→</span>
+          </Link>
+          <a
+            href={AGENTGUARD_MAINNET_CONTRACT}
+            target="_blank"
+            rel="noreferrer"
+            className="intro-explorer-cta"
+          >
+            <span className="intro-explorer-brand">
+              <small>BUILT ON</small>
+              <img src="/brand/botchain-logo.svg" alt="BOT Chain" />
+            </span>
+            <span className="intro-explorer-copy">
+              Open verified contract <b>↗</b>
+            </span>
+          </a>
+        </div>
       </section>
       <footer className="intro-footer">
         <span>© 2026 AgentGuard</span>
-        <span>BOT Chain Testnet · Human approval required · <a href="/legal/reown-community-license.txt" target="_blank" rel="noreferrer">Reown notice</a></span>
+        <span>BOT Chain Mainnet · Human approval required · <a href={AGENTGUARD_MAINNET_CONTRACT} target="_blank" rel="noreferrer">Verified contract ↗</a> · <a href="/legal/reown-community-license.txt" target="_blank" rel="noreferrer">Reown notice</a></span>
       </footer>
     </main>
   );
@@ -367,7 +396,7 @@ function FlowMockup({ type }: { type: number }) {
         <span className="mockup-bar"><BrandLogo size={28} /><b>INTENT / PARSED</b><i>01</i></span>
         <span className="mockup-command">Send <b>0.01 BOT</b> for the server invoice.</span>
         <span className="mockup-data"><i>RECIPIENT</i><b>0x3A9…c76A</b></span>
-        <span className="mockup-data"><i>NETWORK</i><b>BOT · 968</b></span>
+        <span className="mockup-data"><i>NETWORK</i><b>BOT · 677</b></span>
       </span>
     );
   }
@@ -388,29 +417,5 @@ function FlowMockup({ type }: { type: number }) {
       <span className="mockup-score"><strong><i /> ALLOW</strong><b>12 / 100 RISK</b></span>
       <span className="mockup-approval">AWAITING HUMAN APPROVAL <i>→</i></span>
     </span>
-  );
-}
-
-function GuardMark({ large = false }: { large?: boolean }) {
-  return (
-    <svg
-      className={large ? "guard-mark guard-mark-large" : "guard-mark"}
-      viewBox="0 0 32 36"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M16 2 29 6.5v10c0 8-5.2 14.4-13 18C8.2 30.9 3 24.5 3 16.5v-10L16 2Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="m9.5 18 4 4 9-10"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

@@ -40,7 +40,7 @@ export default function LivePolicyView() {
   async function savePolicy() {
     if (!config || !wallet || !walletProvider) return;
     setBusy(true); setError("");
-    try { const expires = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; setTransaction(await setPolicy(config, walletProvider, perTx, daily, expires, true)); await refresh(wallet); }
+    try { const expires = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; setTransaction(await setPolicy(config, walletProvider, perTx, daily, expires, true, wallet)); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -49,7 +49,7 @@ export default function LivePolicyView() {
     if (!config || !wallet || !walletProvider || !recipient || !recipientName.trim()) return;
     setBusy(true); setError("");
     try {
-      setTransaction(await setRecipient(config, walletProvider, recipient, true));
+      setTransaction(await setRecipient(config, walletProvider, recipient, true, wallet));
       saveRecipient(wallet, { name: recipientName, address: recipient });
       setRecipientInput(""); setRecipientName("");
       await refresh(wallet);
@@ -60,7 +60,7 @@ export default function LivePolicyView() {
   async function removeAllowedRecipient(address: string) {
     if (!config || !wallet || !walletProvider) return;
     setBusy(true); setError("");
-    try { setTransaction(await setRecipient(config, walletProvider, address, false)); removeRecipient(wallet, address); await refresh(wallet); }
+    try { setTransaction(await setRecipient(config, walletProvider, address, false, wallet)); removeRecipient(wallet, address); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -76,7 +76,7 @@ export default function LivePolicyView() {
   async function togglePause() {
     if (!config || !wallet || !walletProvider || !policy) return;
     setBusy(true); setError("");
-    try { setTransaction(await setWalletPaused(config, walletProvider, !policy.paused)); await refresh(wallet); }
+    try { setTransaction(await setWalletPaused(config, walletProvider, !policy.paused, wallet)); await refresh(wallet); }
     catch (e) { setError(message(e)); }
     finally { setBusy(false); }
   }
@@ -89,7 +89,7 @@ export default function LivePolicyView() {
         <WalletConnectionButtons onConnect={connect} busy={!config || busy} connected={Boolean(wallet)} busyLabel="Working…" />
         <Divider />
         <div className="grid gap-4 sm:grid-cols-2"><div><Label>Per-transaction limit</Label><input value={perTx} onChange={(e) => setPerTx(e.target.value)} className="input mono" inputMode="decimal" /></div><div><Label>Daily limit</Label><input value={daily} onChange={(e) => setDaily(e.target.value)} className="input mono" inputMode="decimal" /></div></div>
-        <MBtn onClick={savePolicy} disabled={!wallet || busy} className="mt-5 w-full">Write policy to BOT Testnet</MBtn>
+        <MBtn onClick={savePolicy} disabled={!wallet || busy} className="mt-5 w-full">Write policy to BOT Chain Mainnet</MBtn>
         <Divider />
         <Label>Trusted recipients</Label>
         <p className="mb-3 text-xs leading-5 text-slate-500">Give every on-chain allowlisted wallet a name. Names stay in this browser; only the wallet address is written on-chain.</p>
@@ -98,7 +98,7 @@ export default function LivePolicyView() {
         <Divider />
         <div className="flex items-center justify-between"><div><h3 className="text-sm font-semibold">Wallet pause</h3><p className="text-xs text-slate-500">Immediately blocks this wallet’s payments.</p></div><MBtn variant={policy?.paused ? "approve" : "danger"} onClick={togglePause} disabled={!policy || busy}>{policy?.paused ? "Unpause" : "Pause"}</MBtn></div>
       </Card>
-      <Card className="h-fit p-5"><h2 className="text-lg font-semibold">Live contract</h2><Divider /><Row label="Wallet" value={<Mono>{wallet ? short(wallet) : "—"}</Mono>} copy={wallet || undefined} /><Row label="Contract" value={<span title={config?.contract_address}><Mono>{config ? short(config.contract_address) : "Loading…"}</Mono></span>} copy={config?.contract_address} /><Row label="Network" value="BOT Testnet · 968" />{policy && <><Row label="Policy status" value={policy.paused ? "Paused" : "Active"} /><Row label="Expiry" value={policy.expires_at ? new Date(policy.expires_at).toLocaleDateString() : "—"} /></>}{transaction && config && <a className="mt-4 block text-xs text-indigo-300 underline" target="_blank" rel="noreferrer" href={config.explorer_url + "/tx/" + transaction}>View submitted transaction</a>}</Card>
+      <Card className="h-fit p-5"><h2 className="text-lg font-semibold">Live contract</h2><Divider /><Row label="Wallet" value={<Mono>{wallet ? short(wallet) : "—"}</Mono>} copy={wallet || undefined} /><Row label="Contract" value={<span title={config?.contract_address}><Mono>{config ? short(config.contract_address) : "Loading…"}</Mono></span>} copy={config?.contract_address} /><Row label="Network" value={config ? `${config.chain_name} · ${config.chain_id}` : "Loading…"} />{policy && <><Row label="Policy status" value={policy.paused ? "Paused" : "Active"} /><Row label="Expiry" value={policy.expires_at ? new Date(policy.expires_at).toLocaleDateString() : "—"} /></>}{transaction && config && <a className="mt-4 block text-xs text-indigo-300 underline" target="_blank" rel="noreferrer" href={config.explorer_url + "/tx/" + transaction}>View submitted transaction</a>}</Card>
     </div>
   </motion.div>;
 }

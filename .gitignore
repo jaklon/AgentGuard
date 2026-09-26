@@ -21,6 +21,7 @@ coverage/
 artifacts/
 cache/
 typechain-types/
+blockchain/types/
 *.tsbuildinfo
 frontend/vite.config.js
 frontend/vite.config.d.ts
@@ -33,6 +34,8 @@ models/
 backups/
 *.db
 *.db-shm
+# Local deployment receipts/addresses; on-chain data is public but not tracked here.
+blockchain/deployments/
 *.db-wal
 *.log
 .DS_Store

@@ -115,7 +115,7 @@ export default function LifecycleView({ evaluation, transaction, onTransaction }
       <div className="mb-7">
         <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">Live chain receipt</p>
         <h1 className="mt-2 text-3xl font-semibold">Transaction status</h1>
-        <p className="mt-2 text-sm text-slate-500">Status is read from BOT Testnet and refreshes automatically while pending.</p>
+        <p className="mt-2 text-sm text-slate-500">Status is read from BOT Chain Mainnet and refreshes automatically while pending.</p>
       </div>
       {error && <div className="mb-5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-300">{error}</div>}
       <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
@@ -157,10 +157,10 @@ export default function LifecycleView({ evaluation, transaction, onTransaction }
               value={<span className="flex items-center gap-1"><Mono>{short(transaction.transaction_hash)}</Mono><CopyBtn text={transaction.transaction_hash} /></span>}
             />
             <Row label="Block" value={transaction.block_number === null ? "Pending" : <Mono>{transaction.block_number.toLocaleString()}</Mono>} />
-            <Row label="Network" value="BOT Testnet · 968" />
+            <Row label="Network" value="BOT Chain Mainnet · 677" />
             <Row label="Submitted" value={formatTime(transaction.submitted_at)} />
           </div>
-          {transaction.status === "pending" && <p className="mt-4 flex items-center gap-2 text-xs text-slate-500"><Spinner /> Waiting for a BOT Testnet receipt. You may leave this page; tracking will continue when you return.</p>}
+          {transaction.status === "pending" && <p className="mt-4 flex items-center gap-2 text-xs text-slate-500"><Spinner /> Waiting for a BOT Chain Mainnet receipt. You may leave this page; tracking will continue when you return.</p>}
         </Card>
 
         <Card className="p-5 md:p-6">

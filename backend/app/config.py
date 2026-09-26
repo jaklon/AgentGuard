@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import ClassVar, Literal
 
@@ -10,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     _rate_limit_config_version: ClassVar[int] = 0
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.getenv("AGENTGUARD_ENV_FILE", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -25,14 +26,16 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./backend/data/agentguard.db"
 
-    botchain_testnet_rpc_url: str = "https://rpc.bohr.life"
-    botchain_testnet_chain_id: int = 968
-    botchain_testnet_explorer_url: str = "https://scan.bohr.life"
-    botchain_testnet_faucet_url: str = "https://faucet.botchain.ai"
-    botchain_bundler_url: str = "https://bundler.bohr.life/rpc/"
+    botchain_network: Literal["testnet", "mainnet"] = "mainnet"
+    botchain_network_name: str = "BOT Chain Mainnet"
+    botchain_rpc_url: str = "https://rpc.botchain.ai"
+    botchain_chain_id: int = 677
+    botchain_explorer_url: str = "https://scan.botchain.ai"
+    botchain_faucet_url: str = ""
+    botchain_bundler_url: str = ""
     botchain_entry_point: str = "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
-    botchain_contract_deployment_block: int = Field(default=0, ge=0)
-    botchain_contract_address: str = ""
+    botchain_contract_deployment_block: int = Field(default=24_347_779, ge=0)
+    botchain_contract_address: str = "0xae49e0dFae28d43e149b09c4240CbA2F378A1dd6"
     botchain_allocation_wallet: str = "0x1905B29C6F01eDe290010DB081A6ad0Ba78A1a91"
 
     ai_provider: Literal["openai", "llama_cpp", "disabled"] = "llama_cpp"
@@ -49,8 +52,18 @@ class Settings(BaseSettings):
     def validate_production_settings(self) -> "Settings":
         if self.app_env.lower() != "production":
             return self
+        if self.botchain_network != "mainnet":
+            raise ValueError("production must use BOT Chain Mainnet")
+        if self.botchain_chain_id != 677:
+            raise ValueError("production BOT Chain ID must be 677")
+        if self.botchain_rpc_url.rstrip("/") != "https://rpc.botchain.ai":
+            raise ValueError("production must use the official BOT Chain Mainnet RPC")
+        if self.botchain_explorer_url.rstrip("/") != "https://scan.botchain.ai":
+            raise ValueError("production must use the official BOT Chain Mainnet explorer")
         if not self.botchain_contract_address:
             raise ValueError("BOTCHAIN_CONTRACT_ADDRESS is required in production")
+        if self.botchain_contract_deployment_block <= 0:
+            raise ValueError("BOTCHAIN_CONTRACT_DEPLOYMENT_BLOCK is required in production")
         if not self.allowed_origins or any(not origin.startswith("https://") for origin in self.allowed_origins):
             raise ValueError("production CORS origins must be HTTPS")
         if self.ai_provider == "llama_cpp" and not self.local_llm_base_url.startswith(("http://", "https://")):

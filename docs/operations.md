@@ -18,7 +18,7 @@ OS patching, OCI firewall rules, DNS, spending alerts, teammate SSH keys, and Gi
     cp .env.example .env
     chmod 600 .env
 
-Set the real domain, exact HTTPS origin, contract address, and `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`. In Reown Cloud, allowlist the exact HTTPS production origin (and only the development origins that are actually needed). The Project ID is injected during the frontend build, so rebuild the frontend after changing it. Keep testnet chain 968 until the release gate explicitly approves mainnet.
+Set the real domain, exact HTTPS origin, Mainnet contract address, and `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`. In Reown Cloud, allowlist the exact HTTPS production origin (and only the development origins that are actually needed). The Project ID is injected during the frontend build, so rebuild the frontend after changing it. Production is pinned to BOT Chain Mainnet (`677`), `https://rpc.botchain.ai`, and `https://scan.botchain.ai`.
 
 ## Local Qwen inference
 
@@ -50,7 +50,7 @@ validation, for example `HTTP_PORT=8080 HTTPS_PORT=8443`.
 
 1. Tag the tested commit and run infrastructure/scripts/backup.sh.
 2. Deploy with infrastructure/scripts/deploy.sh; it refuses dirty or non-deployment checkouts.
-3. Verify HTTPS, CORS, wallet network, contract address, RPC, explorer links, ALLOW, BLOCK, and manual fallback.
+3. Verify HTTPS, CORS, wallet network, contract address, RPC, explorer links, ALLOW, BLOCK, and manual fallback. The smoke test fails if the public runtime is not Mainnet chain `677` with the approved contract.
 4. To roll back application code, switch /srv/agentguard to the previous release tag and rebuild.
 5. Never mutate a defective contract in place. Pause it, deploy a corrected contract, update both backend and frontend addresses, and repeat every test.
 

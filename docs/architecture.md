@@ -25,6 +25,6 @@
 - Human-readable API examples: docs/api.md
 - Contract source of truth: blockchain/contracts/AgentGuard.sol
 - Current frontend entry points: frontend/app/page.tsx, frontend/app/dashboard/page.tsx, and frontend/app/pay/page.tsx
-- Chain configuration: testnet 968, mainnet 677
+- Production chain: BOT Chain Mainnet 677. Testnet 968 remains available only for development and contract testing.
 
 Any change to an endpoint, schema, contract function, event, environment variable, or chain value is an integration change and requires Project Lead review.

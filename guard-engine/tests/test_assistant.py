@@ -7,7 +7,7 @@ from agentguard_guard import AssistantCompletionError, LlamaCppAssistant
 
 
 @pytest.mark.asyncio
-async def test_qwen_assistant_receives_grounded_context_and_strips_reasoning() -> None:
+async def test_private_assistant_receives_grounded_context_and_strips_reasoning() -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/v1/chat/completions"
         payload = json.loads(request.content)
@@ -15,10 +15,11 @@ async def test_qwen_assistant_receives_grounded_context_and_strips_reasoning() -
         assert payload["messages"][0]["role"] == "system"
         assert "only source of truth" in payload["messages"][0]["content"]
         assert '"balance_bot":"1.25"' in payload["messages"][-1]["content"]
-        assert "Berapa saldo saya?" in payload["messages"][-1]["content"]
+        assert "What is my balance?" in payload["messages"][-1]["content"]
+        assert payload["max_tokens"] == 320
         return httpx.Response(
             200,
-            json={"choices": [{"message": {"content": "<think>hidden</think>Saldo Anda 1.25 BOT."}}]},
+            json={"choices": [{"message": {"content": "<think>hidden</think>Your balance is 1.25 BOT."}}]},
         )
 
     async with httpx.AsyncClient(
@@ -30,20 +31,27 @@ async def test_qwen_assistant_receives_grounded_context_and_strips_reasoning() -
             client=client,
         )
         answer = await assistant.chat(
-            question="Berapa saldo saya?",
-            conversation=[{"role": "assistant", "content": "Silakan bertanya."}],
+            question="What is my balance?",
+            conversation=[{"role": "assistant", "content": "Ask me anything."}],
             live_context={"balance_bot": "1.25"},
         )
 
-    assert answer == "Saldo Anda 1.25 BOT."
+    assert answer == "Your balance is 1.25 BOT."
+
+
+def test_unfinished_hidden_reasoning_is_never_shown() -> None:
+    from agentguard_guard.assistant import strip_hidden_reasoning
+
+    assert strip_hidden_reasoning("<think>unfinished private reasoning") == ""
+    assert strip_hidden_reasoning("Answer <think>unfinished") == "Answer"
 
 
 @pytest.mark.asyncio
-async def test_qwen_assistant_reports_invalid_completion() -> None:
+async def test_private_assistant_reports_invalid_completion() -> None:
     async with httpx.AsyncClient(
         transport=httpx.MockTransport(lambda _request: httpx.Response(200, json={"choices": []})),
         base_url="http://llm",
     ) as client:
-        assistant = LlamaCppAssistant(base_url="http://llm", model="Qwen", client=client)
+        assistant = LlamaCppAssistant(base_url="http://llm", model="test-model", client=client)
         with pytest.raises(AssistantCompletionError, match="temporarily unavailable"):
             await assistant.chat(question="hello", conversation=[], live_context={})

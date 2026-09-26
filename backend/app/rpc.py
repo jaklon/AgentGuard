@@ -44,7 +44,7 @@ class BotChainRpc:
         self._settings = settings
 
     async def call(self, method: str, params: list[Any]) -> Any:
-        return await self._call_url(self._settings.botchain_testnet_rpc_url, method, params)
+        return await self._call_url(self._settings.botchain_rpc_url, method, params)
 
     async def _call_url(self, url: str, method: str, params: list[Any]) -> Any:
         try:
@@ -57,9 +57,13 @@ class BotChainRpc:
                 payload = response.json()
         except (httpx.HTTPError, ValueError) as exc:
             raise RpcError("BOT Chain RPC is unavailable") from exc
+        if not isinstance(payload, dict):
+            raise RpcError("BOT Chain RPC returned an invalid response")
         if payload.get("error"):
             raise RpcError(contract_error_message(payload["error"]))
-        return payload.get("result")
+        if "result" not in payload:
+            raise RpcError("BOT Chain RPC response is missing a result")
+        return payload["result"]
 
 
     async def _explorer_items(
@@ -69,7 +73,7 @@ class BotChainRpc:
         max_pages: int = 20,
     ) -> tuple[list[dict[str, Any]], int, bool]:
         """Read paginated address activity from the BOTScan Blockscout API."""
-        url = f"{self._settings.botchain_testnet_explorer_url.rstrip('/')}{path}"
+        url = f"{self._settings.botchain_explorer_url.rstrip('/')}{path}"
         items: list[dict[str, Any]] = []
         total_count = 0
         total_pages = 1
@@ -99,7 +103,7 @@ class BotChainRpc:
         return await self.call("eth_getCode", [self._require_contract(), "latest"])
 
     async def validate_contract(self) -> None:
-        if await self.chain_id() != self._settings.botchain_testnet_chain_id:
+        if await self.chain_id() != self._settings.botchain_chain_id:
             raise RpcError("BOT Chain RPC returned an unexpected chain ID")
         code = await self.contract_code()
         if not isinstance(code, str) or code == "0x":
@@ -131,7 +135,7 @@ class BotChainRpc:
             raise RpcError("Wallet policy has not been configured")
         return PolicySnapshot(
             wallet=wallet,
-            chain_id=self._settings.botchain_testnet_chain_id,
+            chain_id=self._settings.botchain_chain_id,
             per_transaction_limit_bot=self._from_wei(per_tx),
             daily_limit_bot=self._from_wei(daily),
             spent_today_bot=self._from_wei(spent),

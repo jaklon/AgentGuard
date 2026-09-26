@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <title>AgentGuard Aegis Fold</title>
+  <path fill="#F1E9D7" d="M32 4.5 53.5 13v15.4c0 13.7-8.4 24.1-21.5 30.7C18.9 52.5 10.5 42.1 10.5 28.4V13L32 4.5Z"/>
+  <path fill="#8D8A7E" d="M32 4.5 53.5 13v15.4c0 13.7-8.4 24.1-21.5 30.7V4.5Z"/>
+  <path fill="#161713" d="m32 4.5 7 12.3L32 59.1l-7-42.3 7-12.3Z"/>
+  <path fill="#FFF9EA" fill-opacity=".26" d="m32 4.5 7 12.3-7 5.6-7-5.6 7-12.3Z"/>
+</svg>

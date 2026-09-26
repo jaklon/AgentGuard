@@ -202,7 +202,7 @@ export default function DashboardView() {
                 </p>
               </div>
               <span className="shrink-0 text-[10px] text-slate-600">
-                BOT Testnet · 968
+                BOT Chain Mainnet · 677
               </span>
             </div>
             <textarea
@@ -337,7 +337,7 @@ function ResultCard({ result }: { result: Result }) {
                 label="Payment amount"
                 value={<Mono>{result.amount.toFixed(3)} BOT</Mono>}
               />
-              <Row label="Network" value="BOT Testnet (968)" />
+              <Row label="Network" value="BOT Chain Mainnet (677)" />
               <Row label="Payment purpose" value="Server invoice" />
             </div>
             <motion.div

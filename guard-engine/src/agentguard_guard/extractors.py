@@ -21,7 +21,6 @@ DANGEROUS_PHRASES = (
     "disable policy",
     "bypass policy",
     "ignore previous",
-    "abaikan instruksi",
 )
 
 
@@ -48,7 +47,7 @@ class ManualIntentExtractor:
 
         purpose = ""
         purpose_match = re.search(
-            r"(?:for|untuk|purpose\s*:?)[ ]+(.{1,160})$",
+            r"(?:for|purpose\s*:?)[ ]+(.{1,160})$",
             normalized,
             flags=re.IGNORECASE,
         )

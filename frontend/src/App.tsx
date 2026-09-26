@@ -157,7 +157,7 @@ export default function App() {
             <span className="text-slate-600">Network</span>
             <span className="flex items-center gap-1.5 font-semibold text-amber-300">
               <i className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-              BOT Testnet
+              BOT Chain Mainnet
             </span>
           </div>
           <Link
@@ -202,7 +202,7 @@ export default function App() {
               <b className="block text-[11px] font-semibold">
                 Connect in Check Payment
               </b>
-              <Mono className="block text-[9px] text-slate-600">BOT Testnet · 968</Mono>
+              <Mono className="block text-[9px] text-slate-600">BOT Chain Mainnet · 677</Mono>
             </span>
           </button>
         </div>
@@ -222,7 +222,7 @@ export default function App() {
         </AnimatePresence>
       </main>
       <footer className="dashboard-footer mx-auto hidden max-w-[1320px] justify-between px-10 py-8 text-[10px] lg:flex">
-        <span>AgentGuard · BOT Testnet</span>
+        <span>AgentGuard · BOT Chain Mainnet</span>
         <span>Wallet signatures stay in your selected wallet · <a href="/legal/reown-community-license.txt" target="_blank" rel="noreferrer" className="underline">Reown notice</a></span>
       </footer>
       <nav className="dashboard-mobile-nav fixed inset-x-0 bottom-0 z-50 px-2 py-2 backdrop-blur-xl lg:hidden">
@@ -526,7 +526,7 @@ function Receipt() {
           </motion.div>
           <h1 className="mt-4 text-2xl font-semibold">Payment confirmed</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Testnet receipt prepared in 9.8 seconds.
+            Mainnet receipt prepared in 9.8 seconds.
           </p>
         </div>
         <Divider />
@@ -621,7 +621,7 @@ function Architecture() {
                   <h2 className="mt-1 font-semibold">{n}</h2>
                   <p className="mt-1 text-xs text-slate-500">{d}</p>
                 </div>
-                <Pill status={i === 3 ? "CHAIN 968" : "LAYER"} dot={false} />
+                <Pill status={i === 3 ? "CHAIN 677" : "LAYER"} dot={false} />
               </Card>
             </motion.div>
             {i < 4 && (

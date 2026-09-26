@@ -52,7 +52,7 @@ rpc = BotChainRpc(settings)
 
 primary_extractor = None
 local_extractor: LlamaCppIntentExtractor | None = None
-qwen_assistant: LlamaCppAssistant | None = None
+ai_assistant: LlamaCppAssistant | None = None
 if settings.ai_provider == "openai" and settings.openai_api_key:
     primary_extractor = OpenAIIntentExtractor(
         api_key=settings.openai_api_key,
@@ -66,7 +66,7 @@ elif settings.ai_provider == "llama_cpp":
         timeout_seconds=settings.model_timeout_seconds,
     )
     primary_extractor = local_extractor
-    qwen_assistant = LlamaCppAssistant(
+    ai_assistant = LlamaCppAssistant(
         base_url=settings.local_llm_base_url,
         model=settings.ai_model,
         timeout_seconds=settings.model_timeout_seconds,
@@ -85,8 +85,8 @@ async def lifespan(_app: FastAPI):
     finally:
         if local_extractor:
             await local_extractor.aclose()
-        if qwen_assistant:
-            await qwen_assistant.aclose()
+        if ai_assistant:
+            await ai_assistant.aclose()
 
 
 app = FastAPI(
@@ -170,31 +170,29 @@ async def evaluate_guard(
 
 @app.post("/api/assistant/chat", response_model=AssistantChatResponse)
 async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatResponse:
-    """Answer naturally while grounding wallet claims in fresh BOT Testnet reads."""
-    if qwen_assistant is None:
+    """Answer naturally while grounding wallet claims in fresh BOT Chain reads."""
+    if ai_assistant is None:
         raise HTTPException(
             status_code=503,
-            detail={"code": "QWEN_UNAVAILABLE", "message": "The private Qwen assistant is not enabled"},
+            detail={"code": "ASSISTANT_UNAVAILABLE", "message": "The private AI assistant is not enabled"},
         )
 
     try:
-        history_result, balance_wei, chain_id = await asyncio.gather(
-            rpc.payment_history(payload.wallet),
+        history_result, balance_wei, chain_id, policy_result = await asyncio.gather(
+            rpc.payment_history(payload.wallet, limit=5),
             rpc.balance_wei(payload.wallet),
             rpc.chain_id(),
+            assistant_policy(payload.wallet),
         )
+        if chain_id != settings.botchain_chain_id:
+            raise RpcError("BOT Chain RPC returned an unexpected chain ID")
     except RpcError as exc:
         raise HTTPException(
             status_code=503,
             detail={"code": "LIVE_DATA_UNAVAILABLE", "message": str(exc)},
         ) from exc
 
-    policy = None
-    policy_error = None
-    try:
-        policy = await rpc.policy(payload.wallet)
-    except RpcError as exc:
-        policy_error = str(exc)
+    policy, policy_error = policy_result
 
     history, total_spent, total_count, recipient_totals = history_result
     aliases = {alias.address.lower(): alias.name for alias in payload.recipient_aliases}
@@ -209,7 +207,7 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
             recipient_totals.items(),
             key=lambda entry: (-entry[1][1], entry[0]),
         )
-    ][:20]
+    ][:5]
     recent_payments = [
         {
             "transaction_hash": item["transaction_hash"],
@@ -221,17 +219,17 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
             "funded_from_balance": item["funded_from_balance"],
             "purpose": None,
         }
-        for item in history[:10]
+        for item in history[:5]
     ]
     data_as_of = datetime.now(UTC)
     live_context = {
         "data_as_of": data_as_of.isoformat(),
         "wallet": payload.wallet,
         "network": {
-            "name": "BOT Testnet",
+            "name": settings.botchain_network_name,
             "chain_id": chain_id,
-            "expected_chain_id": settings.botchain_testnet_chain_id,
-            "explorer_url": settings.botchain_testnet_explorer_url,
+            "expected_chain_id": settings.botchain_chain_id,
+            "explorer_url": settings.botchain_explorer_url,
         },
         "balance_bot": format(Decimal(balance_wei) / Decimal(10**18), "f"),
         "policy": None if policy is None else {
@@ -256,13 +254,13 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
         },
         "limitations": [
             "Contract events do not store payment purposes or memos.",
-            "Only the latest 10 payments and top 20 recipients are included in this chat context; aggregate totals cover all confirmed payments.",
+            "Only the latest 5 payments and top 5 recipients are included in this chat context; aggregate totals cover all confirmed AgentGuard payments, not every wallet transfer.",
             "The assistant cannot sign, submit, reverse, or guarantee transactions.",
         ],
     }
 
     try:
-        answer = await qwen_assistant.chat(
+        answer = await ai_assistant.chat(
             question=payload.question,
             conversation=[
                 {"role": item.role, "content": item.text}
@@ -273,15 +271,15 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
     except AssistantCompletionError as exc:
         raise HTTPException(
             status_code=502,
-            detail={"code": "QWEN_COMPLETION_FAILED", "message": str(exc)},
+            detail={"code": "ASSISTANT_COMPLETION_FAILED", "message": str(exc)},
         ) from exc
 
-    sources = ["BOT Testnet RPC", "AgentGuard contract events"]
+    sources = [f"{settings.botchain_network_name} RPC", "AgentGuard contract events"]
     if policy is not None:
         sources.append("AgentGuard Safety Policy")
     return AssistantChatResponse(
         answer=answer,
-        model=settings.ai_model,
+        model="private-local-model",
         live_data=True,
         data_as_of=data_as_of,
         sources=sources,
@@ -289,6 +287,14 @@ async def chat_with_assistant(payload: AssistantChatRequest) -> AssistantChatRes
 
 
 ADDRESS_PATTERN = re.compile(r"0x[a-fA-F0-9]{40}")
+
+async def assistant_policy(wallet: str):
+    """Read optional policy concurrently with the other assistant context."""
+    try:
+        return await rpc.policy(wallet), None
+    except RpcError as exc:
+        return None, str(exc)
+
 
 
 def resolve_recipient_aliases(
@@ -377,13 +383,13 @@ async def public_config() -> PublicConfigResponse:
             detail={"code": "CONTRACT_UNAVAILABLE", "message": "Contract address is not configured"},
         )
     return PublicConfigResponse(
-        chain_id=settings.botchain_testnet_chain_id,
-        chain_name="BOT Testnet",
-        rpc_url=settings.botchain_testnet_rpc_url,
-        explorer_url=settings.botchain_testnet_explorer_url,
+        chain_id=settings.botchain_chain_id,
+        chain_name=settings.botchain_network_name,
+        rpc_url=settings.botchain_rpc_url,
+        explorer_url=settings.botchain_explorer_url,
         contract_address=settings.botchain_contract_address,
         allocation_wallet=settings.botchain_allocation_wallet,
-        faucet_url=settings.botchain_testnet_faucet_url,
+        faucet_url=settings.botchain_faucet_url,
         bundler_url=settings.botchain_bundler_url,
         entry_point=settings.botchain_entry_point,
         # A reachable bundler is not enough: this release does not yet submit
@@ -426,13 +432,14 @@ async def get_transaction(
         transaction_hash=transaction_hash,
         status=status,
         block_number=block_number,
-        explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{transaction_hash}",
+        explorer_url=f"{settings.botchain_explorer_url}/tx/{transaction_hash}",
     )
 
 
 @app.get("/api/botchain/history/{wallet}", response_model=PaymentHistoryResponse)
 async def get_payment_history(
     wallet: str = Path(pattern=r"^0x[a-fA-F0-9]{40}$"),
+    include_wallet_activity: bool = True,
 ) -> PaymentHistoryResponse:
     try:
         history, total, total_count, recipient_totals = await rpc.payment_history(wallet)
@@ -442,6 +449,8 @@ async def get_payment_history(
             detail={"code": "HISTORY_UNAVAILABLE", "message": str(exc)},
         ) from exc
     try:
+        if not include_wallet_activity:
+            raise RpcError("Wallet-wide activity was not requested")
         activity = await rpc.wallet_history(wallet)
         activity_error = None
     except RpcError as exc:
@@ -459,7 +468,7 @@ async def get_payment_history(
     items = [
         PaymentHistoryItem(
             **{**item, "amount_bot": format(item["amount_bot"], "f")},
-            explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{item['transaction_hash']}",
+            explorer_url=f"{settings.botchain_explorer_url}/tx/{item['transaction_hash']}",
         )
         for item in history
     ]
@@ -496,7 +505,7 @@ async def get_payment_history(
                         "amount_bot": format(item["amount_bot"], "f"),
                         "fee_bot": format(item["fee_bot"], "f"),
                     },
-                    explorer_url=f"{settings.botchain_testnet_explorer_url}/tx/{item['transaction_hash']}",
+                    explorer_url=f"{settings.botchain_explorer_url}/tx/{item['transaction_hash']}",
                 )
                 for item in activity["items"]
             ],
@@ -511,18 +520,22 @@ async def get_wallet_readiness(
     try:
         balance_wei = await rpc.balance_wei(wallet)
         chain_id = await rpc.chain_id()
+        if chain_id != settings.botchain_chain_id:
+            raise RpcError("BOT Chain RPC returned an unexpected chain ID")
     except RpcError as exc:
         raise HTTPException(
             status_code=503,
             detail={"code": "READINESS_UNAVAILABLE", "message": str(exc)},
         ) from exc
-    try:
-        entry_points = await rpc.bundler_entry_points()
-        bundler_available = settings.botchain_entry_point.lower() in {
-            entry_point.lower() for entry_point in entry_points
-        }
-    except RpcError:
-        bundler_available = False
+    bundler_available = False
+    if settings.botchain_bundler_url:
+        try:
+            entry_points = await rpc.bundler_entry_points()
+            bundler_available = settings.botchain_entry_point.lower() in {
+                entry_point.lower() for entry_point in entry_points
+            }
+        except RpcError:
+            bundler_available = False
     return WalletReadinessResponse(
         wallet=wallet,
         balance_bot=format(Decimal(balance_wei) / Decimal(10**18), "f"),
@@ -530,7 +543,7 @@ async def get_wallet_readiness(
         bundler_available=bundler_available,
         gasless_available=False,
         entry_point=settings.botchain_entry_point,
-        faucet_url=settings.botchain_testnet_faucet_url,
+        faucet_url=settings.botchain_faucet_url,
     )
 
 
@@ -545,7 +558,7 @@ async def health(db: Session = Depends(get_db)) -> HealthResponse:
     try:
         await rpc.validate_contract()
         chain_id = await rpc.chain_id()
-        expected = settings.botchain_testnet_chain_id
+        expected = settings.botchain_chain_id
         if chain_id == expected:
             chain = ComponentHealth(status="ok", detail=f"chain_id={chain_id}")
         else:
@@ -559,13 +572,13 @@ async def health(db: Session = Depends(get_db)) -> HealthResponse:
     if local_extractor:
         try:
             await local_extractor.check_health()
-            ai = ComponentHealth(status="ok", detail=f"local llama.cpp: {settings.ai_model}")
+            ai = ComponentHealth(status="ok", detail="local private inference")
         except IntentExtractionError:
             ai = ComponentHealth(status="error", detail="local llama.cpp unavailable")
     else:
         ai = ComponentHealth(
             status="ok" if primary_extractor else "fallback",
-            detail=settings.ai_model if primary_extractor else "manual/deterministic extraction enabled",
+            detail="private AI inference" if primary_extractor else "manual/deterministic extraction enabled",
         )
     overall = "ok" if database.status == "ok" and chain.status == "ok" and ai.status != "error" else "degraded"
     return HealthResponse(

@@ -18,7 +18,7 @@ const groups: Record<Owner, string[]> = {
     "VM setup",
     "Guard Engine",
     "Solidity contract",
-    "Deploy testnet",
+    "Deploy mainnet",
     "Docker + Caddy",
     "Smoke tests",
     "Mainnet decision",

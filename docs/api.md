@@ -36,7 +36,7 @@ Example response:
         "action": "payment",
         "recipient": "0x2222222222222222222222222222222222222222",
         "amount_bot": "0.01",
-        "chain_id": 968,
+        "chain_id": 677,
         "purpose": "the demo"
       },
       "warnings": [],
@@ -52,7 +52,7 @@ POST /api/assistant/chat
 The assistant runs on the private Qwen model configured for llama.cpp. The browser sends the
 current question, up to eight recent conversation messages, and optional browser-local recipient
 aliases. The API independently reloads the wallet balance, Safety Policy, recipient aggregates,
-and recent contract events from BOT Testnet before asking Qwen to answer.
+and recent contract events from BOT Chain Mainnet before asking Qwen to answer.
 
 Wallet facts must come from that server-built live context. Contract events do not contain a
 payment purpose or memo, so the assistant reports that limitation instead of inventing one.
@@ -83,7 +83,7 @@ the on-chain sources used for grounding.
 | POST | /api/botchain/simulate | Read-only executePayment simulation with gas, fee, balance-before, and balance-after preview |
 | GET | /api/botchain/policy/{wallet} | Current contract policy and recipient list |
 | GET | /api/botchain/transaction/{hash} | Pending, confirmed, or reverted receipt |
-| GET | /api/botchain/history/{wallet} | AgentGuard PaymentExecuted receipts plus BOTScan-indexed incoming/outgoing native BOT transactions, totals, fees, status, and explorer links |
+| GET | /api/botchain/history/{wallet} | AgentGuard PaymentExecuted receipts plus BOTScan-indexed incoming/outgoing native BOT transactions, totals, fees, status, and explorer links; use `?include_wallet_activity=false` for the lighter contract-only response |
 | GET | /api/botchain/readiness/{wallet} | BOT balance, chain, faucet, bundler, EntryPoint, and sponsorship readiness |
 | GET | /api/health | Database, AI mode, and RPC status |
 

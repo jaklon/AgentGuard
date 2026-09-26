@@ -22,6 +22,6 @@ elif [ -f "$PROJECT_ROOT/backend/data/agentguard.db" ]; then
   install -m 600 "$PROJECT_ROOT/backend/data/agentguard.db" "$TARGET/agentguard.db"
 fi
 install -m 600 "$PROJECT_ROOT/docker-compose.yml" "$TARGET/docker-compose.yml"
-git -C "$PROJECT_ROOT" rev-parse HEAD >"$TARGET/commit.txt"
+git -c safe.directory="$PROJECT_ROOT" -C "$PROJECT_ROOT" rev-parse HEAD >"$TARGET/commit.txt"
 
 echo "Backup created at $TARGET"

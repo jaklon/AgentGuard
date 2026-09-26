@@ -1,9 +1,9 @@
 # Six-minute demo
 
-The current Next.js frontend is a local-only simulation. Use the flow below only after the wallet and API integration described in the implementation plan has been restored; until then, demonstrate the simulated dashboard without claiming that a transaction was signed or sent.
+The current Next.js frontend uses the live AgentGuard API and wallet integration. Use a dedicated low-value Mainnet wallet and never claim a transaction succeeded until BOTScan shows its confirmed receipt.
 
 1. Open the public HTTPS site in a clean browser and name the safety invariant: AgentGuard never receives the wallet key.
-2. Connect the low-value test wallet and switch to BOT Chain testnet.
+2. Connect the dedicated low-value wallet and switch to BOT Chain Mainnet (chain `677`).
 3. Show an on-chain policy with a 0.02 BOT per-transaction limit and the demo recipient allowed.
 4. Submit a 0.01 BOT instruction. Point out the extracted fields, low risk score, contract simulation, complete recipient, contract address, and gas estimate.
 5. Approve in MetaMask, wait for confirmation, and open the transaction on BOTScan.

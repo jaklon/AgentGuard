@@ -8,7 +8,7 @@ import type { EvaluationActivity } from "../lib/activity";
 import type { RecoveryIssue } from "../lib/recovery";
 import {
   connectWallet,
-  ensureBotTestnet,
+  ensureBotChain,
   getHealth,
   getPublicConfig,
   newIntentHash,
@@ -90,12 +90,12 @@ export default function ErrorsView({
         setPreview(null);
       }
     } catch (reason) {
-      setBalanceError(message(reason, "Unable to read this wallet from BOT Testnet."));
+      setBalanceError(message(reason, `Unable to read this wallet from ${config?.chain_name || "BOT Chain"}.`));
       setPreview(null);
     } finally {
       setCheckingBalance(false);
     }
-  }, [evaluation]);
+  }, [config?.chain_name, evaluation]);
 
   useEffect(() => {
     if (connection) void refreshBalance(connection.account);
@@ -147,7 +147,7 @@ export default function ErrorsView({
     setSwitchingNetwork(true);
     setWalletIssue(null);
     try {
-      await ensureBotTestnet(config, connection.provider);
+      await ensureBotChain(config, connection.provider);
       setChainId(parseChainId(await connection.provider.request({ method: "eth_chainId" })));
       await refreshBalance(connection.account);
     } catch (reason) {
@@ -175,7 +175,7 @@ export default function ErrorsView({
     <div className="mb-7">
       <p className="text-xs font-bold uppercase tracking-[.18em] text-indigo-400">Live recovery</p>
       <h1 className="mt-2 text-3xl font-semibold">Wallet and network diagnostics</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">These checks use your selected wallet, the AgentGuard API, and BOT Testnet. Values are live or returned by a real contract dry-run—none are hardcoded.</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">These checks use your selected wallet, the AgentGuard API, and BOT Chain Mainnet. Values are live or returned by a real contract dry-run—none are hardcoded.</p>
     </div>
     {configError && <Notice error>{configError}</Notice>}
 
@@ -184,9 +184,9 @@ export default function ErrorsView({
         <p className="text-sm leading-6 text-slate-400">
           {connection
             ? networkReady
-              ? `Your wallet is connected to ${config?.chain_name || "BOT Testnet"}.`
-              : `Your wallet reports chain ${chainId ?? "unknown"}; AgentGuard requires chain ${config?.chain_id ?? 968}.`
-            : "Connect a wallet to verify its active network and switch to BOT Testnet when needed."}
+              ? `Your wallet is connected to ${config?.chain_name || "BOT Chain"}.`
+              : `Your wallet reports chain ${chainId ?? "unknown"}; AgentGuard requires chain ${config?.chain_id ?? 677}.`
+            : "Connect a wallet to verify its active network and switch to BOT Chain Mainnet when needed."}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Pill status={networkReady ? "ALLOW" : connection ? "WARN" : "BLOCK"} label={networkLabel} />
@@ -203,7 +203,7 @@ export default function ErrorsView({
           variant={networkReady ? "secondary" : "primary"}
           className="mt-5"
         >
-          {switchingNetwork ? <><Spinner />Switching…</> : networkReady ? "Re-check BOT Testnet" : "Switch to BOT Testnet"}
+          {switchingNetwork ? <><Spinner />Switching…</> : networkReady ? `Re-check ${config?.chain_name || "BOT Chain"}` : `Switch to ${config?.chain_name || "BOT Chain"}`}
         </MBtn>}
       </DiagnosticCard>
 
@@ -247,7 +247,7 @@ export default function ErrorsView({
           <MBtn variant="secondary" onClick={() => connection && void refreshBalance(connection.account)} disabled={!connection || checkingBalance}>
             {checkingBalance ? <><Spinner />Refreshing…</> : "Refresh balance"}
           </MBtn>
-          {readiness && insufficient && <a href={readiness.faucet_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200">Open testnet faucet <Icon name="arrow" size={15} /></a>}
+          {readiness?.faucet_url && insufficient && <a href={readiness.faucet_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-200">Open network faucet <Icon name="arrow" size={15} /></a>}
         </div>
       </DiagnosticCard>
 

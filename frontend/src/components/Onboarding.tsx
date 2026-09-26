@@ -102,7 +102,7 @@ export default function Onboarding({
                 ))}
               </div>
               <div className="mt-5 rounded-2xl border border-emerald-500/15 bg-emerald-500/[.06] p-4 text-xs leading-5 text-emerald-800">
-                <b>BOT Testnet is active.</b> Policy is checked against live
+                <b>BOT Chain Mainnet is active.</b> Policy is checked against live
                 contract state, and wallet approval remains in MetaMask.
               </div>
               <MBtn onClick={onClose} className="mt-5 w-full py-3">
