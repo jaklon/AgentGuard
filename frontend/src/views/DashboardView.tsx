@@ -101,7 +101,7 @@ export default function DashboardView() {
               check
             </div>
             <h1 className="guard-title font-semibold leading-[.93] tracking-[-.055em]">
-              Check before funds move.
+              Check before funds move
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-slate-400 md:text-lg">
               Write the request in plain language. AgentGuard immediately tells

@@ -278,7 +278,7 @@ export default function LiveDashboardView({
     <section className="guard-hero mb-8 pb-9">
       <div className="guard-hero-logo" aria-hidden="true"><BrandLogo size={160} /></div>
       <p className="text-[10px] font-bold uppercase tracking-[.16em] text-indigo-300">Live {config?.chain_name || "BOT Chain"} · Chain {config?.chain_id ?? "—"}</p>
-      <h1 className="guard-title mt-4 font-semibold leading-[.93] tracking-[-.055em]">Check before funds move.</h1>
+      <h1 className="guard-title mt-4 font-semibold leading-[.93] tracking-[-.055em]">Check before funds move</h1>
       <p className="mt-5 max-w-2xl text-base leading-7 text-slate-400">Describe, preview, and approve a policy-protected payment. Only your wallet can sign.</p>
     </section>
     {error && <Notice error>{error}</Notice>}
